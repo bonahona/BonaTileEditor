@@ -30,6 +30,16 @@ public class TileTypeCollection
         return result;
     }
 
+    public int GetTileType(IntVector2 vector)
+    {
+        return GetTileType(vector.X, vector.Y);
+    }
+
+    public int GetTileType(Point point)
+    {
+        return GetTileType(point.X, point.Y);
+    }
+
     public int GetTileType(int x, int y)
     {
         int index = y * Width + x;

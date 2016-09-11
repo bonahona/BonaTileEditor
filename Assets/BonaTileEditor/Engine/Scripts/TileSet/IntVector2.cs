@@ -14,6 +14,12 @@ public class IntVector2
         Y = 0;
     }
 
+    public IntVector2(IntVector2 other)
+    {
+        X = other.X;
+        Y = other.Y;
+    }
+
     public IntVector2(int x, int y)
     {
         X = x;

@@ -14,6 +14,12 @@ public struct Point
         Y = y;
     }
 
+    public Point(IntVector2 vector)
+    {
+        X = vector.X;
+        Y = vector.Y;
+    }
+
     public static bool operator==(Point lhs, Point rhs)
     {
         return (lhs.X == rhs.X && lhs.Y == rhs.Y);

@@ -9,6 +9,14 @@ public class MapSegmentEditor : Editor
     public const string SEGMENT_WIDTH_TOOLTIP = "Width of this map segment countet in tiles";
     public const string SEGMENT_HEIGHT_TOOLTIP = "Height of this map segment countet in tiles";
 
+    public static readonly string[] BRUSH_TYPES_VALUES = new string[] { "Point", "Brush", "Block", "Bucket" };
+
+    public const float BASE_LAYER_DEPTH = 0;
+    public const float OVERLAY_BASE_DEPTH = 0;
+    public const float OVERLAY_INCREMENT_DEPTH = 0.01f;
+    public const float ONTOP_OVERLAY_BASE_DEPTH = 1;
+    public const float ONTOP_OVERLAY_INCREMENT_DEPTH = 0.01f;
+
     public const int MAX_WIDTH = 100;
     public const int MAX_HEIGHT = 100;
 
@@ -27,6 +35,15 @@ public class MapSegmentEditor : Editor
 
     // State variabes
     public bool AltPress { get; set; }
+    public bool ControlPress { get; set; }
+    public bool ShiftPress { get; set; }
+    public List<bool> NumericButtonPress { get; set; }
+
+    // Loaded resources
+    public Texture2D[] ToolBarBrushTextures;
+    public Texture2D TileTexture;
+    public Texture2D SelectedTileTexture;
+
     public bool MouseClicked { get; set; }
     public IntVector2 BlockStart { get; set; }
 
@@ -47,7 +64,7 @@ public class MapSegmentEditor : Editor
         CurrentLayerIndex = 0;
         for (int i = 0; i < layers.Length; i++) {
             if (MapSegment.CurrentLayer == layers[i]) {
-                CurrentLayerIndex = i + 1;
+                CurrentLayerIndex = i;
             }
         }
 
@@ -83,13 +100,16 @@ public class MapSegmentEditor : Editor
 
     public void ApplyTilsetChanges()
     {
-        foreach (var layer in TileSet.Layers) {
+        for(int i = 0; i < TileSet.Layers.Count; i++) {
+            var layer = TileSet.Layers[i];
+
             if (MapSegment.HasLayerOfType(layer)) {
-                AlterLayer(layer);
+                AlterLayer(layer, i);
             } else {
-                CreateNewLayer(layer);
+                CreateNewLayer(layer, i);
             }
         }
+
 
         // Also make sure there are no remnats of layers no longer present in the tileset
         var tileSetGuid = GetGuidsForLayers();
@@ -159,6 +179,28 @@ public class MapSegmentEditor : Editor
         }
     }
 
+    protected Texture2D[] GetBrushTextures()
+    {
+        var result = new Texture2D[4];
+
+        result[0] = Resources.Load("eyedropper") as Texture2D;
+        result[1] = Resources.Load("pencil") as Texture2D;
+        result[2] = Resources.Load("paint-roller") as Texture2D; 
+        result[3] = Resources.Load("paint-can") as Texture2D;
+
+        return result;
+    }
+
+    protected Texture2D GetTileTexture()
+    {
+        return Resources.Load("TileUnSelected") as Texture2D;
+    }
+
+    protected Texture2D GetSelectedTileTexture()
+    {
+        return Resources.Load("TileSelected") as Texture2D;
+    }
+
     protected void DrawMainDataSegment()
     {
         Width = EditorGUILayout.IntSlider(new GUIContent("Width", SEGMENT_WIDTH_TOOLTIP), Width, 0, MAX_WIDTH);
@@ -170,21 +212,23 @@ public class MapSegmentEditor : Editor
     {
         // Select the current layer to draw to
         var layers = MapSegment.GetComponentsInChildren<MapSegmentLayer>();
-        string[] layerNames = new string[layers.Length + 1];
-        layerNames[0] = " - Select layer - ";
+        if(layers.Length == 0) {
+            MapSegment.CurrentLayer = null;
+            EditorGUILayout.LabelField("Warning! Tileset does not have any layers loaded.");
+            EditorGUILayout.LabelField("Resolve this by selecting a tileset and applying the changes.");
+            return;
+        }
 
-        int index = 1;
+        string[] layerNames = new string[layers.Length];
+
+        int index = 0;
         foreach (var tmpLayer in layers) {
             layerNames[index] = tmpLayer.TileSetLayer.Name;
             ++index;
         }
 
-        CurrentLayerIndex = EditorGUILayout.Popup(CurrentLayerIndex, layerNames);
-        if (CurrentLayerIndex > 0) {
-            MapSegment.CurrentLayer = layers[CurrentLayerIndex - 1];
-        } else {
-            MapSegment.CurrentLayer = null;
-        }
+        CurrentLayerIndex = EditorGUILayout.Popup("Current layer", CurrentLayerIndex, layerNames);
+        MapSegment.CurrentLayer = layers[CurrentLayerIndex];
 
         // Select the current brush
         int bufferZone = 8;
@@ -193,30 +237,25 @@ public class MapSegmentEditor : Editor
         if (MapSegment.TileSet != null) {
             if (MapSegment.CurrentLayer != null) {
 
-                GUI.BeginGroup(GUILayoutUtility.GetRect(windowSize, 52));
-                GUI.BeginGroup(new Rect((windowSize / 2) - 50, 0, 100, 100));
-                EditorGUI.LabelField(new Rect(0, 0, 128, 16), "Brush type");
-
-                if (EditorGUI.Toggle(new Rect(0, 16, 24, 24), (MapSegment.CurrentBrush == MapSegmentBrushType.None), "Button")) {
-                    MapSegment.CurrentBrush = MapSegmentBrushType.None;
-                }
-                if (EditorGUI.Toggle(new Rect(24, 16, 24, 24), (MapSegment.CurrentBrush == MapSegmentBrushType.Single), "Button")) {
-                    MapSegment.CurrentBrush = MapSegmentBrushType.Single;
-                }
-                if (EditorGUI.Toggle(new Rect(48, 16, 24, 24), (MapSegment.CurrentBrush == MapSegmentBrushType.Block), "Button")) {
-                    MapSegment.CurrentBrush = MapSegmentBrushType.Block;
-                }
-                if (EditorGUI.Toggle(new Rect(72, 16, 24, 24), (MapSegment.CurrentBrush == MapSegmentBrushType.Fill), "Button")) {
-                    MapSegment.CurrentBrush = MapSegmentBrushType.Fill;
+                if (ToolBarBrushTextures == null) {
+                    ToolBarBrushTextures = GetBrushTextures();
                 }
 
-                GUI.EndGroup();
-                GUI.EndGroup();
+                if(TileTexture == null) {
+                    TileTexture = GetTileTexture();
+                }
 
+                if (SelectedTileTexture == null) {
+                    SelectedTileTexture = GetSelectedTileTexture();
+                }
+
+                // Select current brush
+                MapSegment.CurrentBrush = (MapSegmentBrushType)GUILayout.Toolbar(((int)MapSegment.CurrentBrush), ToolBarBrushTextures);
 
                 var layer = MapSegment.CurrentLayer.TileSetLayer;
                 int tileWidth = windowSize / layer.TileSetWidth;
 
+                // Select the current tile to draw, from the selected tile layer
                 GUI.BeginGroup(GUILayoutUtility.GetRect(windowSize, layer.TileSetHeight * tileWidth));
                 int height = layer.TileSetHeight * tileWidth;
                 for (int y = 0; y < layer.TileSetHeight; y++) {
@@ -225,7 +264,13 @@ public class MapSegmentEditor : Editor
 
                         Rect rect = new Rect(x * tileWidth, height - ((y + 1) * tileWidth), tileWidth, tileWidth);
                         GUI.DrawTextureWithTexCoords(rect, layer.Texture, layer.Tiles[num].Rect);
-                        if (GUI.Button(rect, "", m_internalTileStyle)) {
+
+                        var currentTileTexture = TileTexture;
+                        if(num == MapSegment.CurrentTileId) {
+                            currentTileTexture = SelectedTileTexture;
+                        }
+
+                        if (GUI.Button(rect, currentTileTexture, m_internalTileStyle)) {
                             MapSegment.CurrentTile = layer.Tiles[num];
                             MapSegment.CurrentTileId = num;
                         }
@@ -239,7 +284,7 @@ public class MapSegmentEditor : Editor
         }
     }
 
-    public void CreateNewLayer(TileSetLayer tileSetLayer)
+    public void CreateNewLayer(TileSetLayer tileSetLayer, int layerIndex)
     {
         GameObject segmentGameObject = new GameObject("MapSegmentLayer");
         var layer = segmentGameObject.AddComponent<MapSegmentLayer>();
@@ -248,9 +293,8 @@ public class MapSegmentEditor : Editor
 
         segmentGameObject.gameObject.transform.parent = MapSegment.transform;
         segmentGameObject.transform.localPosition = new Vector3();
-        //segmentGameObject.hideFlags = HideFlags.HideInHierarchy;
 
-        ApplyChanges(layer, segmentGameObject);
+        ApplyChanges(layer, segmentGameObject, layerIndex);
         EditorUtility.SetDirty(segmentGameObject);
     }
 
@@ -268,16 +312,14 @@ public class MapSegmentEditor : Editor
         return null;
     }
 
-    public void AlterLayer(TileSetLayer tileSetLayer)
+    public void AlterLayer(TileSetLayer tileSetLayer, int layerIndex)
     {
         var segmentGameObject = GetObjectFromLayer(tileSetLayer);
 
         if (segmentGameObject != null) {
             var layer = segmentGameObject.GetComponent<MapSegmentLayer>();
-            ApplyChanges(layer, segmentGameObject);
+            ApplyChanges(layer, segmentGameObject, layerIndex);
         }
-
-        segmentGameObject.hideFlags = HideFlags.None;
     }
 
     public int TranslateTilePosition(TileTypeCollection tiles, int x, int y)
@@ -297,7 +339,7 @@ public class MapSegmentEditor : Editor
         return tiles.GetTileType(x, y);
     }
 
-    public void ApplyChanges(MapSegmentLayer layer, GameObject gameObject)
+    public void ApplyChanges(MapSegmentLayer layer, GameObject gameObject, int layerIndex)
     {
         TileTypeCollection oldTiles = null;
 
@@ -355,9 +397,41 @@ public class MapSegmentEditor : Editor
         Undo.RegisterCompleteObjectUndo(meshFilter, "Updated map segment mesh");
         meshFilter.mesh = mesh;
 
+        // Update the game object
+        gameObject.hideFlags = HideFlags.HideInHierarchy;
+
+        var layerType = layer.TileSetLayer.LayerType;
+        if(layerType == TileSetLayerType.BaseLayer) {
+            gameObject.transform.position = GetBaseLayerPosition(gameObject.transform.position);
+        }else if(layerType == TileSetLayerType.Overlay) {
+            gameObject.transform.position = GetOverlayPosition(gameObject.transform.position, layerIndex);
+        }else if(layerType == TileSetLayerType.OnTopOverlay) {
+            gameObject.transform.position = GetOnTopOverlayPosition(gameObject.transform.position, layerIndex);
+        }
+
         EditorUtility.SetDirty(layer);       
     }
 
+    public Vector3 GetBaseLayerPosition(Vector3 currentPosition)
+    {
+        var result = currentPosition;
+        result.z = BASE_LAYER_DEPTH;
+        return result;
+    }
+
+    public Vector3 GetOverlayPosition(Vector3 currentPostition, int layerIndex)
+    {
+        var result = currentPostition;
+        result.z = OVERLAY_BASE_DEPTH + (layerIndex * OVERLAY_INCREMENT_DEPTH);
+        return result;
+    }
+
+    public Vector3 GetOnTopOverlayPosition(Vector3 currentPostition, int layerIndex)
+    {
+        var result = currentPostition;
+        result.z = ONTOP_OVERLAY_BASE_DEPTH + (layerIndex * ONTOP_OVERLAY_INCREMENT_DEPTH);
+        return result;
+    }
     protected void AddVertices(int x, int y, List<Vector3> vertices, Vector2 tileSize)
     {
         float sizeX = tileSize.x;
@@ -414,11 +488,8 @@ public class MapSegmentEditor : Editor
         var controlId = GUIUtility.GetControlID(FocusType.Passive);
         HandleUtility.AddDefaultControl(controlId);
 
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftAlt) {
-            AltPress = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftAlt) {
-            AltPress = false;
-        }
+        UpdateKeyInput();
+        HandleShortCuts();
 
         if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Space) {
             mapSegment.CurrentBrush = MapSegmentBrushType.None;
@@ -432,6 +503,114 @@ public class MapSegmentEditor : Editor
         } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Fill) {
             HandleFillBrush(mapSegment);
         }
+    }
+
+    protected void UpdateKeyInput()
+    {
+        if (NumericButtonPress == null) {
+            NumericButtonPress = new List<bool>();
+
+            for(int i = 0; i < 9; i++) {
+                NumericButtonPress.Add(false);
+            }
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftAlt) {
+            AltPress = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftAlt) {
+            AltPress = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftControl) {
+            ControlPress = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftControl) {
+            ControlPress = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftShift) {
+            ShiftPress = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftShift) {
+            ShiftPress = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha1) {
+            NumericButtonPress[0] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha1) {
+            NumericButtonPress[0] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha2) {
+            NumericButtonPress[1] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha2) {
+            NumericButtonPress[1] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha3) {
+            NumericButtonPress[2] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha3) {
+            NumericButtonPress[2] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha4) {
+            NumericButtonPress[3] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha4) {
+            NumericButtonPress[3] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha5) {
+            NumericButtonPress[4] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha5) {
+            NumericButtonPress[4] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha6) {
+            NumericButtonPress[5] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha6) {
+            NumericButtonPress[5] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha7) {
+            NumericButtonPress[6] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha7) {
+            NumericButtonPress[6] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha8) {
+            NumericButtonPress[7] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha8) {
+            NumericButtonPress[7] = false;
+        }
+
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha9) {
+            NumericButtonPress[8] = true;
+        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha9) {
+            NumericButtonPress[8] = false;
+        }
+    }
+
+    protected void HandleShortCuts()
+    {
+        if (ShiftPress) {
+            // Updates the current layer. Eg. Ctrl + 1 means layer 0 and Ctrl + 2 means layer 0
+            for(int i = 0; i < NumericButtonPress.Count; i++) {
+                if (NumericButtonPress[i]) {
+                    if (LayerIndexExists(i)) {
+                        CurrentLayerIndex = i;
+                    }
+                }
+            }
+        }
+    }
+
+    protected bool LayerIndexExists(int layerIndex)
+    {
+        var layers = MapSegment.GetComponentsInChildren<MapSegmentLayer>();
+
+        if (layers.Length >= layerIndex) {
+            return false;
+        }
+
+        return true;
     }
 
     protected void HandleSingleBrush(MapSegment mapSegment)
@@ -448,11 +627,8 @@ public class MapSegmentEditor : Editor
 
         if (MouseClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
-            var localHit = mapSegment.transform.InverseTransformPoint(raycastHit.point);
-            var x = Mathf.FloorToInt(localHit.x / mapSegment.GridTileSize.x);
-            var y = Mathf.FloorToInt(localHit.y / mapSegment.GridTileSize.y);
-
-            Paint(x, y, mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
+            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
+            Paint(tilePosition.X, tilePosition.Y , mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
 
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -464,20 +640,17 @@ public class MapSegmentEditor : Editor
         if (!AltPress) {
             // Find the tile to paint
             RaycastHit raycastHit;
-            bool isMouseOver = Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
-
+            Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
 
             // Find the cordinates of the selected tile
-            int triIndex = Mathf.FloorToInt((float)raycastHit.triangleIndex / 2);
-            int y = (triIndex / Width);
-            int x = triIndex - (y * Width);
+            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
-                BlockStart = new IntVector2(x, y);
+                BlockStart = new IntVector2(tilePosition);
             } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
 
                 if (BlockStart != null) {
-                    IntVector2 endBlock = new IntVector2(x, y);
+                    IntVector2 endBlock = new IntVector2(tilePosition);
 
                     for (int by = Mathf.Min(BlockStart.Y, endBlock.Y); by <= Mathf.Max(BlockStart.Y, endBlock.Y); by++) {
                         for (int bx = Mathf.Min(BlockStart.X, endBlock.X); bx <= Mathf.Max(BlockStart.X, endBlock.X); bx++) {
@@ -512,13 +685,11 @@ public class MapSegmentEditor : Editor
         if (MouseClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
             // Find the cordinates of the selected tile
-            int triIndex = Mathf.FloorToInt((float)raycastHit.triangleIndex / 2);
-            int y = (triIndex / Width);
-            int x = triIndex - (y * Width);
+            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
 
-            int tileTypeId = mapSegment.CurrentLayer.TilesCollection.GetTileType(x, y);
+            int tileTypeId = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
 
-            foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(x, y), tileTypeId, MapSegment)) {
+            foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(tilePosition), tileTypeId, MapSegment)) {
                 Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
             }
         }
@@ -527,36 +698,64 @@ public class MapSegmentEditor : Editor
     protected List<Point> FindAllAdjecentTilesOfType(Point startPoint, int tileTypeId, MapSegment mapSegment)
     {
         HashSet<Point> result = new HashSet<Point>();
-        SearchDepthFirst(startPoint, result, mapSegment.Width, mapSegment.Height, tileTypeId, mapSegment);
+        SearchDepthFirst(startPoint, result, mapSegment.Width, mapSegment);
 
         return new List<Point>(result);
     }
 
-    protected void SearchDepthFirst(Point currentPoint, HashSet<Point> result, int MaxX, int MaxY, int tileTypeId, MapSegment mapSegment)
+    protected void SearchDepthFirst(Point currentPoint, HashSet<Point> result, int tileTypeId, MapSegment mapSegment)
     {
         // If the result set already contains this, the tile has already been processedes
         if(result.Contains(currentPoint)){
             return;
-        }else{
+        }
 
-            // Make sure this tile is of the type we're looking for
-            if (MapSegment.CurrentLayer.TilesCollection.GetTileType(currentPoint.X, currentPoint.Y) == tileTypeId) {
-                result.Add(currentPoint);
+        // We are looking outside the map segments max and min values regarding width and height
+        if(!IsWithinBounds(currentPoint, mapSegment)) {
+            return;
+        }
 
-                for (int y = -1; y <= 1; y++) {
-                    for (int x = -1; x <= 1; x++) {
-                        if (x != 0 || y != 0) {
+        // This is not the tiletype where looking for
+        var currentTileTypeId = MapSegment.CurrentLayer.TilesCollection.GetTileType(currentPoint);
+        if (currentTileTypeId != tileTypeId) {
+            return;
+        }
 
-                            Point tmpPoint = new Point(currentPoint.X + x, currentPoint.Y + y);
+        result.Add(currentPoint);
 
-                            if (tmpPoint.X >= 0 && tmpPoint.X < MaxX && tmpPoint.Y < MaxY) {
-                                SearchDepthFirst(tmpPoint, result, MaxY, MaxY, tileTypeId, mapSegment);
-                            }
-                        }
-                    }
+        for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+                if (x != 0 || y != 0) {
+
+                    Point tmpPoint = new Point(currentPoint.X + x, currentPoint.Y + y);
+                    SearchDepthFirst(tmpPoint, result, tileTypeId, mapSegment);
                 }
             }
         }
+    }
+
+    protected bool IsWithinBounds(Point point, MapSegment mapSegment)
+    {
+        if(point.X < 0 || point.Y < 0) {
+            return false;
+        }
+
+        if(point.X >= mapSegment.Width || point.Y >= mapSegment.Height) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected IntVector2 GetTilePosition(MapSegment mapSegment, Vector3 hitCordinate)
+    {
+        var result = new IntVector2();
+
+        var localHit = mapSegment.transform.InverseTransformPoint(hitCordinate);
+        result.X = Mathf.FloorToInt(localHit.x / mapSegment.GridTileSize.x);
+        result.Y = Mathf.FloorToInt(localHit.y / mapSegment.GridTileSize.y);
+
+        return result;
     }
 
     public void Paint(int x, int y, Tile tile, int tileId, MapSegment target)
@@ -582,8 +781,10 @@ public class MapSegmentEditor : Editor
             uvs[uvOffset + i] = tile.UvCords[i];
         }
 
+        Undo.RecordObjects(new Object[] { targetLayer, targetLayer.GetComponent<MeshFilter>().sharedMesh }, "Painted tile");
+
         target.CurrentLayer.TilesCollection.SetTileType(x, y, tileId);
-        Undo.RecordObject(targetLayer.MeshFilter, "Painted tile");
         targetLayer.MeshFilter.sharedMesh.uv = uvs;
+        SceneView.RepaintAll();
     }
 }

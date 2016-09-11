@@ -43,6 +43,10 @@ public class TileSetEditor : Editor
 
     public void Apply()
     {
+        if (!ValidateTileSet()) {
+            return;
+        }
+
         foreach (var entry in LocalLayers) {
             if (!entry.Applied) {
                 if (!entry.Apply()) {
@@ -60,6 +64,23 @@ public class TileSetEditor : Editor
 
         // Make sure the new tileset is saved
         EditorUtility.SetDirty(target);
+    }
+
+    public bool ValidateTileSet()
+    {
+        var baseLayerCount = 0;
+        foreach(var entry in LocalLayers) {
+            if(entry.LayerType == TileSetLayerType.BaseLayer) {
+                baseLayerCount++;
+            }
+        }
+
+        if(baseLayerCount > 1) {
+            Debug.LogError("Unable to apply tileset changes. Tileset contains multiple baselayers. Allowed amount is 0-1");
+            return false;
+        }
+
+        return true;
     }
 
     public void AddLayer()
