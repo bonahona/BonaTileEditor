@@ -3,11 +3,13 @@ using System.Collections;
 using System;
 
 [System.Serializable]
-public class TileSetLayer {
-
+public class TileSetLayer
+{
     public String Guid;
     public string Name;
     public TileSetLayerType LayerType;
+
+
     public int TileSetWidth;
     public int TileSetHeight;
     public Texture2D Texture;
@@ -63,12 +65,12 @@ public class TileSetLayer {
     {
 
         if (TileSetWidth <= 0 || TileSetHeight <= 0) {
-            Debug.LogError("The width and height must be above 0");
+            Debug.LogError("Unable to apply tileset changes: The width and height must be above 0");
             return false;
         }
 
         if (Texture == null) {
-            Debug.LogError("Texture can't be null");
+            Debug.LogError("Unable to apply tileset changes: Texture can't be null");
             return false;
         }
 

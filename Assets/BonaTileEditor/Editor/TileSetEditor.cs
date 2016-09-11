@@ -6,6 +6,9 @@ using System.Collections.Generic;
 [CustomEditor(typeof(TileSet))]
 public class TileSetEditor : Editor
 {
+    const string TILESET_WIDTH_TOOLTIP = "Number of tiles in a row in the tileset";
+    const string TILESET_HEIGHT_TOOLTIP = "Number of tiles in a column in the tileset";
+
     public TileSet TileSet;
     public List<TileSetLayer> LocalLayers;
     public List<bool> ShowFoldout;
@@ -26,20 +29,20 @@ public class TileSetEditor : Editor
     {
         TileSet = (TileSet)target;
         LocalLayers = new List<TileSetLayer>();
-        foreach(var entry in TileSet.Layers){
+        foreach (var entry in TileSet.Layers) {
             var tmpEntry = entry.Clone();
             tmpEntry.Applied = true;
             LocalLayers.Add(tmpEntry);
         }
 
         ShowFoldout = new List<bool>();
-        for (int i = 0; i < LocalLayers.Count; i++ ) {
+        for (int i = 0; i < LocalLayers.Count; i++) {
             ShowFoldout.Add(false);
         }
     }
 
     public void Apply()
-    {           
+    {
         foreach (var entry in LocalLayers) {
             if (!entry.Applied) {
                 if (!entry.Apply()) {
@@ -69,7 +72,7 @@ public class TileSetEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        if (GUILayout.Button("Add layer")){
+        if (GUILayout.Button("Add layer")) {
             AddLayer();
         }
 
@@ -94,10 +97,10 @@ public class TileSetEditor : Editor
 
     public void DrawLayerEditor(TileSetLayer layer)
     {
-        var tmpName = EditorGUILayout.TextField("Width", layer.Name);
+        var tmpName = EditorGUILayout.TextField("Layer name", layer.Name);
         var tmpLayerType = (TileSetLayerType)EditorGUILayout.EnumPopup("Type", layer.LayerType);
-        var tmpWidth = EditorGUILayout.IntField("Width", layer.TileSetWidth);
-        var tmpHeight = EditorGUILayout.IntField("Heigh", layer.TileSetHeight);
+        var tmpWidth = EditorGUILayout.IntField(new GUIContent("Width", TILESET_WIDTH_TOOLTIP), layer.TileSetWidth);
+        var tmpHeight = EditorGUILayout.IntField(new GUIContent("Height", TILESET_HEIGHT_TOOLTIP), layer.TileSetHeight);
         var tmpTexture = (Texture2D)EditorGUILayout.ObjectField("Texture", layer.Texture, typeof(Texture2D), false);
 
         // Detect changes
@@ -122,9 +125,9 @@ public class TileSetEditor : Editor
             return;
         }
 
-        int bufferZone = 8;
-        int windowSize = Screen.width - bufferZone;
-        int tileWidth = windowSize / layer.TileSetWidth;
+        int bufferSize = 32;
+        int windowSize = Screen.width - bufferSize;
+        int tileWidth = (int)Mathf.Floor(windowSize / layer.TileSetWidth);
 
         GUI.BeginGroup(GUILayoutUtility.GetRect(windowSize, layer.TileSetHeight * tileWidth));
         int height = layer.TileSetHeight * tileWidth;
@@ -162,7 +165,7 @@ public class TileSetEditor : Editor
         if (layer.LayerType == TileSetLayerType.BaseLayer) {
             if (tile.Pathing == TilePathing.BaseUnwalkable) {
                 tile.Pathing = TilePathing.BaseWalkable;
-            }else if(tile.Pathing == TilePathing.BaseWalkable){
+            } else if (tile.Pathing == TilePathing.BaseWalkable) {
                 tile.Pathing = TilePathing.BaseUnwalkable;
             } else {
                 tile.Pathing = TilePathing.BaseUnwalkable;
