@@ -22,30 +22,42 @@ public class MapSegmentEditor : Editor
 
     public MapSegment MapSegment { get; set; }
 
-    public bool MainFoldout { get; set; }
+    #region Local copies of the MapSegment variables
     public int Width { get; set; }
     public int Height { get; set; }
     public TileSet TileSet { get; set; }
 
-    public bool TileSetFoldout { get; set; }
     public int CurrentLayerIndex { get; set; }
+    public int CurrentHoverIndex { get; set; }
 
-    public bool OptionsFoldout { get; set; }
     public Vector2 GridTileSize { get; set; }
+    #endregion
 
-    // State variabes
+    #region Inspector state variables
+    public bool MainFoldout { get; set; }
+    public bool TileSetFoldout { get; set; }
+    public bool OptionsFoldout { get; set; }
+
     public bool AltPress { get; set; }
     public bool ControlPress { get; set; }
     public bool ShiftPress { get; set; }
     public List<bool> NumericButtonPress { get; set; }
 
+    public bool IsMouseOver { get; set; }
+    public RaycastHit RaycastHit { get; set; }
+    public IntVector2 CurrentlyHoverPoint { get; set; }
+
+    public IntVector2 SelectionBlockStart { get; set; }
+
+    public bool MouseLeftClicked { get; set; }
+    public bool MouseRightClicked { get; set; }
+    public IntVector2 BlockStart { get; set; }
+    #endregion
+
     // Loaded resources
     public Texture2D[] ToolBarBrushTextures;
-    public Texture2D TileTexture;
     public Texture2D SelectedTileTexture;
-
-    public bool MouseClicked { get; set; }
-    public IntVector2 BlockStart { get; set; }
+    public Texture2D HoverTileTexture;
 
     private GUIStyle m_internalTileStyle;
     void OnEnabled()
@@ -155,6 +167,12 @@ public class MapSegmentEditor : Editor
 
     public override void OnInspectorGUI()
     {
+        UpdateMouseClick();
+
+        if (MapSegment.CurrentTileSelection == null) {
+            MapSegment.CurrentTileSelection = new TileTypeCollection();
+        }
+
         MainFoldout = EditorGUILayout.Foldout(MainFoldout, "Main data");
         if (MainFoldout) {
             DrawMainDataSegment();
@@ -177,6 +195,8 @@ public class MapSegmentEditor : Editor
         if (GUILayout.Button("Reset")) {
             Reset();
         }
+
+        Repaint();
     }
 
     protected Texture2D[] GetBrushTextures()
@@ -191,14 +211,15 @@ public class MapSegmentEditor : Editor
         return result;
     }
 
-    protected Texture2D GetTileTexture()
-    {
-        return Resources.Load("TileUnSelected") as Texture2D;
-    }
-
     protected Texture2D GetSelectedTileTexture()
     {
-        return Resources.Load("TileSelected") as Texture2D;
+        return Resources.Load("SelectedTile") as Texture2D;
+    }
+
+
+    protected Texture2D GetHoverTexture()
+    {
+        return Resources.Load("HoverTile") as Texture2D;
     }
 
     protected void DrawMainDataSegment()
@@ -241,13 +262,14 @@ public class MapSegmentEditor : Editor
                     ToolBarBrushTextures = GetBrushTextures();
                 }
 
-                if(TileTexture == null) {
-                    TileTexture = GetTileTexture();
-                }
-
                 if (SelectedTileTexture == null) {
                     SelectedTileTexture = GetSelectedTileTexture();
                 }
+
+                if (HoverTileTexture == null) {
+                    HoverTileTexture = GetHoverTexture();
+                }
+
 
                 // Select current brush
                 MapSegment.CurrentBrush = (MapSegmentBrushType)GUILayout.Toolbar(((int)MapSegment.CurrentBrush), ToolBarBrushTextures);
@@ -255,8 +277,13 @@ public class MapSegmentEditor : Editor
                 var layer = MapSegment.CurrentLayer.TileSetLayer;
                 int tileWidth = windowSize / layer.TileSetWidth;
 
-                // Select the current tile to draw, from the selected tile layer
-                GUI.BeginGroup(GUILayoutUtility.GetRect(windowSize, layer.TileSetHeight * tileWidth));
+                // Get the group rectangle to we can correct the mouse position by it as an offset
+                var guiGroupRect = GUILayoutUtility.GetRect(windowSize, layer.TileSetHeight * tileWidth);
+
+                // Adjust the mouse position by the GUI Group Rectangles start value to the correct tile can be selected
+                var mousePosition = Event.current.mousePosition - guiGroupRect.position;
+
+                GUI.BeginGroup(guiGroupRect);
                 int height = layer.TileSetHeight * tileWidth;
                 for (int y = 0; y < layer.TileSetHeight; y++) {
                     for (int x = 0; x < layer.TileSetWidth; x++) {
@@ -265,22 +292,41 @@ public class MapSegmentEditor : Editor
                         Rect rect = new Rect(x * tileWidth, height - ((y + 1) * tileWidth), tileWidth, tileWidth);
                         GUI.DrawTextureWithTexCoords(rect, layer.Texture, layer.Tiles[num].Rect);
 
-                        var currentTileTexture = TileTexture;
-                        if(num == MapSegment.CurrentTileId) {
-                            currentTileTexture = SelectedTileTexture;
+                        Texture2D currentTexture = null;
+
+                        if (rect.Contains(mousePosition)) {
+                            currentTexture = HoverTileTexture;
+                            SetTileSelection(x, y, num);
+                        }else if (MapSegment.CurrentTileSelection.Contains(num)){
+                            currentTexture = SelectedTileTexture;
                         }
 
-                        if (GUI.Button(rect, currentTileTexture, m_internalTileStyle)) {
-                            MapSegment.CurrentTile = layer.Tiles[num];
-                            MapSegment.CurrentTileId = num;
+                        if (currentTexture != null) {
+                            GUI.DrawTexture(rect, currentTexture);
                         }
                     }
+                }
+
+                // When allis drawn, if the left mouse is no longer pressed, the selection phase is over
+                if (!MouseLeftClicked) {
+                    SelectionBlockStart = null;
                 }
 
                 GUI.EndGroup();
             } else {
                 EditorGUILayout.LabelField("Select a layer first");
             }
+        }
+    }
+
+    public void SetTileSelection(int x, int y, int tileTypeId)
+    {
+        if (MouseLeftClicked && SelectionBlockStart == null) {
+            MapSegment.CurrentTileSelection.SetStartSelection(tileTypeId);
+            SelectionBlockStart = new IntVector2(x, y);
+        }else if(MouseLeftClicked && SelectionBlockStart != null) {
+            IntVector2 selectionEnd = new IntVector2(x, y);
+            MapSegment.CurrentTileSelection.UpdateSelection(SelectionBlockStart, selectionEnd, MapSegment.CurrentLayer.TileSetLayer);
         }
     }
 
@@ -488,8 +534,8 @@ public class MapSegmentEditor : Editor
         var controlId = GUIUtility.GetControlID(FocusType.Passive);
         HandleUtility.AddDefaultControl(controlId);
 
-        UpdateKeyInput();
         HandleShortCuts();
+        UpdateKeyInput();
 
         if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Space) {
             mapSegment.CurrentBrush = MapSegmentBrushType.None;
@@ -503,6 +549,35 @@ public class MapSegmentEditor : Editor
         } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Fill) {
             HandleFillBrush(mapSegment);
         }
+    }
+
+    protected void UpdateMouseClick()
+    {
+        if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
+            MouseLeftClicked = true;
+        } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
+            MouseLeftClicked = false;
+        }
+
+        if (Event.current.type == EventType.MouseDown && Event.current.button == 1) {
+            MouseRightClicked = true;
+        } else if (Event.current.type == EventType.MouseUp && Event.current.button == 1) {
+            MouseRightClicked = false;
+        }
+    }
+
+    protected void UpdateMouse(MapSegment mapSegment)
+    {
+        RaycastHit raycastHit;
+        IsMouseOver = Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
+        RaycastHit = raycastHit;
+
+        if (IsMouseOver) {
+            CurrentlyHoverPoint = GetTilePosition(mapSegment, raycastHit.point);
+        } else {
+            CurrentlyHoverPoint = null;
+        }
+
     }
 
     protected void UpdateKeyInput()
@@ -620,15 +695,15 @@ public class MapSegmentEditor : Editor
         bool isMouseOver = Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
 
         if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
-            MouseClicked = true;
+            MouseLeftClicked = true;
         } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
-            MouseClicked = false;
+            MouseLeftClicked = false;
         }
 
-        if (MouseClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
+        if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
             var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
-            Paint(tilePosition.X, tilePosition.Y , mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
+            //Paint(tilePosition.X, tilePosition.Y , mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
 
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -654,7 +729,7 @@ public class MapSegmentEditor : Editor
 
                     for (int by = Mathf.Min(BlockStart.Y, endBlock.Y); by <= Mathf.Max(BlockStart.Y, endBlock.Y); by++) {
                         for (int bx = Mathf.Min(BlockStart.X, endBlock.X); bx <= Mathf.Max(BlockStart.X, endBlock.X); bx++) {
-                            Paint(bx, by, MapSegment.CurrentTile, MapSegment.CurrentTileId, mapSegment);
+                            //Paint(bx, by, MapSegment.CurrentTile, MapSegment.CurrentTileId, mapSegment);
                         }
                     }
 
@@ -672,25 +747,15 @@ public class MapSegmentEditor : Editor
             return;
         }
 
-        // Find the tile to paint
-        RaycastHit raycastHit;
-        bool isMouseOver = Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
-
-        if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
-            MouseClicked = true;
-        } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
-            MouseClicked = false;
-        }
-
-        if (MouseClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
+        if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && IsMouseOver) {
 
             // Find the cordinates of the selected tile
-            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
+            var tilePosition = GetTilePosition(mapSegment, RaycastHit.point);
 
             int tileTypeId = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
 
             foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(tilePosition), tileTypeId, MapSegment)) {
-                Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
+                //Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
             }
         }
     }

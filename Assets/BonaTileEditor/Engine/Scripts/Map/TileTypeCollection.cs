@@ -11,6 +11,13 @@ public class TileTypeCollection
     public int Width;
     public int Height;
 
+    public TileTypeCollection()
+    {
+        Width = 0;
+        Height = 0;
+        InternalData = new int[0];
+    }
+
     public TileTypeCollection(int width, int height)
     {
         Width = width;
@@ -28,6 +35,50 @@ public class TileTypeCollection
         }
 
         return result;
+    }
+
+    public void SetStartSelection(int tileType)
+    {
+        Width = 1;
+        Height = 1;
+
+        InternalData = new int[] { tileType };
+    }
+
+    public void UpdateSelection(IntVector2 start, IntVector2 end, TileSetLayer tileLayer)
+    {
+        Debug.Log(String.Format("{0}:{1}", start, end));
+
+        return;
+        int startX = Mathf.Min(start.X, end.X);
+        int endX = Mathf.Max(start.X, end.X);
+
+        // The Rows are drawn from the bottoms up hence the revserse order
+        int startY = Mathf.Max(start.Y, end.Y);
+        int endY = Mathf.Min(start.Y, end.Y);
+
+        Width = (endX - startX) + 1;
+        Height = (endY - startY) + 1;
+
+        var totalSize = Width * Height;
+        InternalData = new int[totalSize];
+
+        // These two stores values baed from zero to be used when calculating array indices
+        var currentX = 0;
+        var currentY = 0;
+        for(int y = startY; y <= end.Y; y++) {
+            for(int x = startX; x <= endX; x++) {
+                int currentIndex = (currentY * Height) + currentX;
+                InternalData[currentIndex] = tileLayer.GetTileTypeId(x, y);
+                currentX++;
+            }
+            currentY++;
+        }
+    }
+
+    public bool Contains(int tileType)
+    {
+        return InternalData.Contains(tileType);
     }
 
     public int GetTileType(IntVector2 vector)

@@ -99,4 +99,9 @@ public class TileSetLayer
         Applied = true;
         return true;
     }
+
+    public int GetTileTypeId(int x, int y)
+    {
+        return (y * TileSetWidth + x);
+    }
 }
