@@ -71,6 +71,7 @@
     <Compile Include="Assets\BonaTileEditor\Engine\Scripts\Map\MapSegment.cs" />
     <Compile Include="Assets\BonaTileEditor\Engine\Scripts\Map\MapSegmentBrushType.cs" />
     <Compile Include="Assets\BonaTileEditor\Engine\Scripts\Map\MapSegmentLayer.cs" />
+    <Compile Include="Assets\BonaTileEditor\Engine\Scripts\Map\MapSegmentSelection.cs" />
     <Compile Include="Assets\BonaTileEditor\Engine\Scripts\Map\TileTypeCollection.cs" />
     <Compile Include="Assets\BonaTileEditor\Engine\Scripts\Point.cs" />
     <Compile Include="Assets\BonaTileEditor\Engine\Scripts\TileSet\IntVector2.cs" />

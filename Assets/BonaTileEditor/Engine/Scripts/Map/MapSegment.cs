@@ -13,7 +13,7 @@ public class MapSegment : MonoBehaviour {
     // Work details, so the get stored even when an object is briefly deselected and then reselected
     public MapSegmentLayer CurrentLayer { get; set; }
     public MapSegmentBrushType CurrentBrush { get; set; }
-    public TileTypeCollection CurrentTileSelection { get; set; }
+    public MapSegmentSelection CurrentTileSelection { get; set; }
     public int CurrentTileId { get; set; }
 
 

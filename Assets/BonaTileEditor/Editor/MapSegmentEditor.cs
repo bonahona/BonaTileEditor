@@ -9,8 +9,6 @@ public class MapSegmentEditor : Editor
     public const string SEGMENT_WIDTH_TOOLTIP = "Width of this map segment countet in tiles";
     public const string SEGMENT_HEIGHT_TOOLTIP = "Height of this map segment countet in tiles";
 
-    public static readonly string[] BRUSH_TYPES_VALUES = new string[] { "Point", "Brush", "Block", "Bucket" };
-
     public const float BASE_LAYER_DEPTH = 0;
     public const float OVERLAY_BASE_DEPTH = 0;
     public const float OVERLAY_INCREMENT_DEPTH = 0.01f;
@@ -170,7 +168,7 @@ public class MapSegmentEditor : Editor
         UpdateMouseClick();
 
         if (MapSegment.CurrentTileSelection == null) {
-            MapSegment.CurrentTileSelection = new TileTypeCollection();
+            MapSegment.CurrentTileSelection = new MapSegmentSelection();
         }
 
         MainFoldout = EditorGUILayout.Foldout(MainFoldout, "Main data");
@@ -201,12 +199,13 @@ public class MapSegmentEditor : Editor
 
     protected Texture2D[] GetBrushTextures()
     {
-        var result = new Texture2D[4];
+        var result = new Texture2D[5];
 
         result[0] = Resources.Load("eyedropper") as Texture2D;
         result[1] = Resources.Load("pencil") as Texture2D;
         result[2] = Resources.Load("paint-roller") as Texture2D; 
         result[3] = Resources.Load("paint-can") as Texture2D;
+        result[4] = Resources.Load("eyedropper") as Texture2D;
 
         return result;
     }
@@ -270,7 +269,6 @@ public class MapSegmentEditor : Editor
                     HoverTileTexture = GetHoverTexture();
                 }
 
-
                 // Select current brush
                 MapSegment.CurrentBrush = (MapSegmentBrushType)GUILayout.Toolbar(((int)MapSegment.CurrentBrush), ToolBarBrushTextures);
 
@@ -307,7 +305,7 @@ public class MapSegmentEditor : Editor
                     }
                 }
 
-                // When allis drawn, if the left mouse is no longer pressed, the selection phase is over
+                // When all is drawn, if the left mouse is no longer pressed, the selection phase is over
                 if (!MouseLeftClicked) {
                     SelectionBlockStart = null;
                 }
@@ -319,14 +317,14 @@ public class MapSegmentEditor : Editor
         }
     }
 
-    public void SetTileSelection(int x, int y, int tileTypeId)
+    public void SetTileSelection(int x, int y, int tileType)
     {
         if (MouseLeftClicked && SelectionBlockStart == null) {
-            MapSegment.CurrentTileSelection.SetStartSelection(tileTypeId);
+            MapSegment.CurrentTileSelection.SetSingleSelection(tileType);
             SelectionBlockStart = new IntVector2(x, y);
         }else if(MouseLeftClicked && SelectionBlockStart != null) {
             IntVector2 selectionEnd = new IntVector2(x, y);
-            MapSegment.CurrentTileSelection.UpdateSelection(SelectionBlockStart, selectionEnd, MapSegment.CurrentLayer.TileSetLayer);
+            MapSegment.CurrentTileSelection.SetSelection(SelectionBlockStart, selectionEnd, MapSegment.CurrentLayer);
         }
     }
 

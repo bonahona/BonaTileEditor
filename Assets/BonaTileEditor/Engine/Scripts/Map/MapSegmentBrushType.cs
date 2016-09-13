@@ -8,5 +8,6 @@ public enum MapSegmentBrushType
     None,
     Single,
     Block,
-    Fill
+    Fill,
+    Pipett
 }
