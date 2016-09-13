@@ -32,6 +32,8 @@ public class MapSegmentEditor : Editor
     #endregion
 
     #region Inspector state variables
+    public bool IgnoreSelection { get; set; }       // When something has been changed this frame, avoid selection of tiles this round.
+
     public bool MainFoldout { get; set; }
     public bool TileSetFoldout { get; set; }
     public bool OptionsFoldout { get; set; }
@@ -165,6 +167,7 @@ public class MapSegmentEditor : Editor
 
     public override void OnInspectorGUI()
     {
+        IgnoreSelection = false;
         UpdateMouseClick();
 
         if (MapSegment.CurrentTileSelection == null) {
@@ -247,8 +250,10 @@ public class MapSegmentEditor : Editor
             ++index;
         }
 
-        CurrentLayerIndex = EditorGUILayout.Popup("Current layer", CurrentLayerIndex, layerNames);
-        MapSegment.CurrentLayer = layers[CurrentLayerIndex];
+        var layerIndex = EditorGUILayout.Popup("Current layer", CurrentLayerIndex, layerNames);
+        if (layerIndex != CurrentLayerIndex) {
+            ChangeLayer(layerIndex, layers);
+        }
 
         // Select the current brush
         int bufferZone = 8;
@@ -270,7 +275,10 @@ public class MapSegmentEditor : Editor
                 }
 
                 // Select current brush
-                MapSegment.CurrentBrush = (MapSegmentBrushType)GUILayout.Toolbar(((int)MapSegment.CurrentBrush), ToolBarBrushTextures);
+                var selectedBrush = (MapSegmentBrushType)GUILayout.Toolbar(((int)MapSegment.CurrentBrush), ToolBarBrushTextures);
+                if(selectedBrush != MapSegment.CurrentBrush) {
+                    ChangeBrush(selectedBrush);
+                }
 
                 var layer = MapSegment.CurrentLayer.TileSetLayer;
                 int tileWidth = windowSize / layer.TileSetWidth;
@@ -288,6 +296,7 @@ public class MapSegmentEditor : Editor
                         int num = (y * layer.TileSetWidth) + x;
 
                         Rect rect = new Rect(x * tileWidth, height - ((y + 1) * tileWidth), tileWidth, tileWidth);
+
                         GUI.DrawTextureWithTexCoords(rect, layer.Texture, layer.Tiles[num].Rect);
 
                         Texture2D currentTexture = null;
@@ -319,6 +328,10 @@ public class MapSegmentEditor : Editor
 
     public void SetTileSelection(int x, int y, int tileType)
     {
+        if (IgnoreSelection) {
+            return;
+        }
+
         if (MouseLeftClicked && SelectionBlockStart == null) {
             MapSegment.CurrentTileSelection.SetSingleSelection(tileType);
             SelectionBlockStart = new IntVector2(x, y);
@@ -686,6 +699,34 @@ public class MapSegmentEditor : Editor
         return true;
     }
 
+    protected void ChangeBrush(MapSegmentBrushType brushType)
+    {
+        if(brushType == MapSegmentBrushType.None || brushType == MapSegmentBrushType.Pipett) {
+            MapSegment.CurrentTileSelection.Clear();
+        }
+
+        if(brushType == MapSegmentBrushType.Block || brushType == MapSegmentBrushType.Fill) {
+            MapSegment.CurrentTileSelection.SetToSingleSelection();
+        }
+
+        MapSegment.CurrentBrush = brushType;
+    }
+
+    protected void ChangeLayer(int layerIndex, MapSegmentLayer[] layers)
+    {
+        // To avoid immediately selecting the first thing the mouse hovers over on the new layer
+        MouseLeftClicked = false;
+        MouseRightClicked = false;
+
+        MapSegment.CurrentTileSelection.Clear();
+        SelectionBlockStart = null;
+
+        MapSegment.CurrentLayer = layers[layerIndex];
+        CurrentLayerIndex = layerIndex;
+
+        IgnoreSelection = true;
+    }
+
     protected void HandleSingleBrush(MapSegment mapSegment)
     {
         // Find the tile to paint
@@ -701,7 +742,7 @@ public class MapSegmentEditor : Editor
         if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
             var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
-            //Paint(tilePosition.X, tilePosition.Y , mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
+            Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection, mapSegment);
 
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -727,7 +768,7 @@ public class MapSegmentEditor : Editor
 
                     for (int by = Mathf.Min(BlockStart.Y, endBlock.Y); by <= Mathf.Max(BlockStart.Y, endBlock.Y); by++) {
                         for (int bx = Mathf.Min(BlockStart.X, endBlock.X); bx <= Mathf.Max(BlockStart.X, endBlock.X); bx++) {
-                            //Paint(bx, by, MapSegment.CurrentTile, MapSegment.CurrentTileId, mapSegment);
+                            //Paint(bx, by, MapSegment.CurrentTileSelection, MapSegment.CurrentTileId, mapSegment);
                         }
                     }
 
@@ -753,7 +794,7 @@ public class MapSegmentEditor : Editor
             int tileTypeId = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
 
             foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(tilePosition), tileTypeId, MapSegment)) {
-                //Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTile, mapSegment.CurrentTileId, mapSegment);
+                //Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTileSelection, mapSegment.CurrentTileId, mapSegment);
             }
         }
     }
@@ -821,9 +862,54 @@ public class MapSegmentEditor : Editor
         return result;
     }
 
-    public void Paint(int x, int y, Tile tile, int tileId, MapSegment target)
+    public void Paint(Point point, MapSegmentSelection selection, MapSegment target)
     {
-        if(x < 0 || y < 0) {
+        if (point.X < 0 || point.Y < 0) {
+            Debug.LogWarning(string.Format("Could not paint tile {0}:{1}", point.X, point.Y));
+            return;
+        }
+
+        var targetLayer = target.CurrentLayer;
+
+        for(int y = 0; y < selection.Height; y++) {
+            for(int x = 0; x < selection.Width; x++) {
+                if(ValidateBounds(x, y, point, target)) {
+                    var currentX = point.X + x;
+                    var currentY = point.Y - y;
+
+                    // The tiles are counted from down to up in the inspector, so this needs to be inverted
+                    var tileY = (selection.Height - 1) - y;
+
+                    var tileType = selection.GetTileType(x, tileY);
+                    var tile = targetLayer.TileSetLayer.Tiles[tileType];
+
+                    PaintTile(currentX, currentY, tile, tileType, target);
+                }
+            }
+        }
+    }
+
+    protected bool ValidateBounds(int offsetX, int offsetY, Point startPoint, MapSegment mapSegment)
+    {
+        if(startPoint.X + offsetX >= mapSegment.Width) {
+            return false;
+        }
+
+        if(startPoint.Y + offsetY >= mapSegment.Height) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public void Paint(MapSegmentBlock block, MapSegmentSelection selection, MapSegment target)
+    {
+        
+    }
+
+    public void PaintTile(int x, int y, Tile tile, int tileType, MapSegment target)
+    {
+        if (x < 0 || y < 0) {
             Debug.LogWarning(string.Format("Could not paint tile {0}:{1}", x, y));
             return;
         }
@@ -846,8 +932,7 @@ public class MapSegmentEditor : Editor
 
         Undo.RecordObjects(new Object[] { targetLayer, targetLayer.GetComponent<MeshFilter>().sharedMesh }, "Painted tile");
 
-        target.CurrentLayer.TilesCollection.SetTileType(x, y, tileId);
+        target.CurrentLayer.TilesCollection.SetTileType(x, y, tileType);
         targetLayer.MeshFilter.sharedMesh.uv = uvs;
-        SceneView.RepaintAll();
     }
 }

@@ -120,6 +120,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\BonaTileEditor\Editor\Helpers\BonaAssetUtility.cs" />
+    <Compile Include="Assets\BonaTileEditor\Editor\MapSegmentBlock.cs" />
     <Compile Include="Assets\BonaTileEditor\Editor\MapSegmentEditor.cs" />
     <Compile Include="Assets\BonaTileEditor\Editor\MapSegmentLayerEditor.cs" />
     <Compile Include="Assets\BonaTileEditor\Editor\MenuExtensions.cs" />
