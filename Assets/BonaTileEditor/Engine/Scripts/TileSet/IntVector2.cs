@@ -30,4 +30,9 @@ public class IntVector2
     {
         return String.Format("{0},{1}", X, Y);
     }
+
+    public Point ToPoint()
+    {
+        return new Point(X, Y);
+    }
 }

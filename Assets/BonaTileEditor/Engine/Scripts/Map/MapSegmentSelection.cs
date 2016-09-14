@@ -33,6 +33,15 @@ public class MapSegmentSelection
         InternalData = new int[] { tileType };
     }
 
+    public int GetSingleSelecttion()
+    {
+        if(Width == 1 && Height == 1) {
+            return InternalData[0];
+        }
+
+        return -1;
+    }
+
     // Scale down (if pssobile) the current selection to only cover the top left block
     public void SetToSingleSelection()
     {

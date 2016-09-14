@@ -208,6 +208,12 @@ public class MapSegmentEditor : Editor
     {
         if(MapSegment.CurrentLayer == null) {
             var layers = MapSegment.GetComponentsInChildren<MapSegmentLayer>();
+
+            // No layers exists, so nothing can be set as default (duh!)
+            if(layers.Length == 0) {
+                return;
+            }
+
             MapSegment.CurrentLayer = layers[CurrentLayerIndex];
         }
     }
@@ -274,7 +280,7 @@ public class MapSegmentEditor : Editor
         if (MapSegment.TileSet != null) {
             if (MapSegment.CurrentLayer != null) {
 
-                if (ToolBarBrushTextures == null) {
+                if (ToolBarBrushTextures == null || ToolBarBrushTextures.Length == 0) {
                     ToolBarBrushTextures = GetBrushTextures();
                 }
 
@@ -801,9 +807,9 @@ public class MapSegmentEditor : Editor
                 if (BlockStart != null) {
                     IntVector2 endBlock = new IntVector2(tilePosition);
 
-                    for (int by = Mathf.Min(BlockStart.Y, endBlock.Y); by <= Mathf.Max(BlockStart.Y, endBlock.Y); by++) {
-                        for (int bx = Mathf.Min(BlockStart.X, endBlock.X); bx <= Mathf.Max(BlockStart.X, endBlock.X); bx++) {
-                            //Paint(bx, by, MapSegment.CurrentTileSelection, MapSegment.CurrentTileId, mapSegment);
+                    for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
+                        for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
+                            Paint(new Point(x, y), MapSegment.CurrentTileSelection, mapSegment);
                         }
                     }
 
@@ -817,27 +823,35 @@ public class MapSegmentEditor : Editor
 
     protected void HandleFillBrush(MapSegment mapSegment)
     {
-        if (AltPress) {
-            return;
+        // Find the tile to paint
+        RaycastHit raycastHit;
+        bool isMouseOver = Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
+
+        if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
+            MouseLeftClicked = true;
+        } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
+            MouseLeftClicked = false;
         }
 
-        if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && IsMouseOver) {
+        if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
-            // Find the cordinates of the selected tile
-            var tilePosition = GetTilePosition(mapSegment, RaycastHit.point);
+            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
+            var tileType = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
+            var adjecentTiles = FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType, mapSegment);
 
-            int tileTypeId = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
+            foreach (var adjecentTile in adjecentTiles) {
+                Paint(adjecentTile, mapSegment.CurrentTileSelection, mapSegment);
+            }
 
-            //foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(tilePosition), tileTypeId, MapSegment)) {
-            //    Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTileSelection, mapSegment.CurrentTileId, mapSegment);
-            //}
+            // Set dirty so the editor serializes it
+            EditorUtility.SetDirty(mapSegment.CurrentLayer);
         }
     }
 
-    protected List<Point> FindAllAdjecentTilesOfType(Point startPoint, int tileTypeId, MapSegment mapSegment)
+    protected List<Point> FindAllAdjecentTilesOfType(Point startPoint, int tileType, MapSegment mapSegment)
     {
         HashSet<Point> result = new HashSet<Point>();
-        SearchDepthFirst(startPoint, result, mapSegment.Width, mapSegment);
+        SearchDepthFirst(startPoint, result, tileType, mapSegment);
 
         return new List<Point>(result);
     }
@@ -864,8 +878,7 @@ public class MapSegmentEditor : Editor
 
         for (int y = -1; y <= 1; y++) {
             for (int x = -1; x <= 1; x++) {
-                if (x != 0 || y != 0) {
-
+                if ((x != 0 || y != 0) && Mathf.Abs(x) != Mathf.Abs(y)) {
                     Point tmpPoint = new Point(currentPoint.X + x, currentPoint.Y + y);
                     SearchDepthFirst(tmpPoint, result, tileTypeId, mapSegment);
                 }
