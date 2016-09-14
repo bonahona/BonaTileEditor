@@ -32,7 +32,7 @@ public class MapSegmentEditor : Editor
     #endregion
 
     #region Inspector state variables
-    public bool IgnoreSelection { get; set; }       // When something has been changed this frame, avoid selection of tiles this round.
+    public Vector2 MapSegmentDrawOffset { get; set; }
 
     public bool MainFoldout { get; set; }
     public bool TileSetFoldout { get; set; }
@@ -167,8 +167,12 @@ public class MapSegmentEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        IgnoreSelection = false;
+        SetDefaults();
         UpdateMouseClick();
+
+        if(Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Space) {
+            MapSegment.CurrentTileSelection.Clear();
+        }
 
         if (MapSegment.CurrentTileSelection == null) {
             MapSegment.CurrentTileSelection = new MapSegmentSelection();
@@ -198,6 +202,14 @@ public class MapSegmentEditor : Editor
         }
 
         Repaint();
+    }
+
+    protected void SetDefaults()
+    {
+        if(MapSegment.CurrentLayer == null) {
+            var layers = MapSegment.GetComponentsInChildren<MapSegmentLayer>();
+            MapSegment.CurrentLayer = layers[CurrentLayerIndex];
+        }
     }
 
     protected Texture2D[] GetBrushTextures()
@@ -287,24 +299,31 @@ public class MapSegmentEditor : Editor
                 var guiGroupRect = GUILayoutUtility.GetRect(windowSize, layer.TileSetHeight * tileWidth);
 
                 // Adjust the mouse position by the GUI Group Rectangles start value to the correct tile can be selected
-                var mousePosition = Event.current.mousePosition - guiGroupRect.position;
-
                 GUI.BeginGroup(guiGroupRect);
+
+                var eventType = Event.current.type;
+                var mousePosition = new Vector2();
+
+                if(eventType == EventType.Repaint || eventType == EventType.MouseDown || eventType == EventType.MouseUp || eventType == EventType.MouseDrag) {
+                    mousePosition = Event.current.mousePosition;
+                    MapSegmentDrawOffset = guiGroupRect.position - Vector2.one;
+                } else {
+                    mousePosition = Event.current.mousePosition - MapSegmentDrawOffset;
+                }
+
                 int height = layer.TileSetHeight * tileWidth;
                 for (int y = 0; y < layer.TileSetHeight; y++) {
                     for (int x = 0; x < layer.TileSetWidth; x++) {
                         int num = (y * layer.TileSetWidth) + x;
 
-                        Rect rect = new Rect(x * tileWidth, height - ((y + 1) * tileWidth), tileWidth, tileWidth);
-
+                        var rect = new Rect(x * tileWidth, height - ((y + 1) * tileWidth), tileWidth, tileWidth);
                         GUI.DrawTextureWithTexCoords(rect, layer.Texture, layer.Tiles[num].Rect);
 
                         Texture2D currentTexture = null;
-
-                        if (rect.Contains(mousePosition)) {
+                        if (RectContains(rect, mousePosition)) {
                             currentTexture = HoverTileTexture;
                             SetTileSelection(x, y, num);
-                        }else if (MapSegment.CurrentTileSelection.Contains(num)){
+                        } else if (MapSegment.CurrentTileSelection.Contains(num)) {
                             currentTexture = SelectedTileTexture;
                         }
 
@@ -326,18 +345,29 @@ public class MapSegmentEditor : Editor
         }
     }
 
+    public bool RectContains(Rect rect, Vector2 point)
+    {
+        if (rect.Contains(point)) {
+            return true;
+        }
+
+        return false;
+    }
+
     public void SetTileSelection(int x, int y, int tileType)
     {
-        if (IgnoreSelection) {
+        if (!BrushAllowsSelection(MapSegment.CurrentBrush)) {
             return;
         }
 
         if (MouseLeftClicked && SelectionBlockStart == null) {
             MapSegment.CurrentTileSelection.SetSingleSelection(tileType);
             SelectionBlockStart = new IntVector2(x, y);
-        }else if(MouseLeftClicked && SelectionBlockStart != null) {
+        }else if(MouseLeftClicked && SelectionBlockStart != null && BrushAllowsBlockSelection(MapSegment.CurrentBrush)) {
             IntVector2 selectionEnd = new IntVector2(x, y);
             MapSegment.CurrentTileSelection.SetSelection(SelectionBlockStart, selectionEnd, MapSegment.CurrentLayer);
+        }else {
+            SelectionBlockStart = null;
         }
     }
 
@@ -541,6 +571,14 @@ public class MapSegmentEditor : Editor
 
     void OnSceneGUI()
     {
+        // Make sure to call a repaint of the MapSegments when Undo or Redo is called
+        var currentEvent = Event.current;
+        if(currentEvent.type == EventType.ValidateCommand) {
+            if (currentEvent.commandName == "UndoRedoPerform") {
+                // TODO: Add logics for Undo/Redo
+            }
+        }
+
         MapSegment mapSegment = (MapSegment)target;
         var controlId = GUIUtility.GetControlID(FocusType.Passive);
         HandleUtility.AddDefaultControl(controlId);
@@ -549,8 +587,7 @@ public class MapSegmentEditor : Editor
         UpdateKeyInput();
 
         if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Space) {
-            mapSegment.CurrentBrush = MapSegmentBrushType.None;
-            Repaint();
+            mapSegment.CurrentTileSelection.Clear();
         }
 
         if (mapSegment.CurrentBrush == MapSegmentBrushType.Single) {
@@ -701,11 +738,11 @@ public class MapSegmentEditor : Editor
 
     protected void ChangeBrush(MapSegmentBrushType brushType)
     {
-        if(brushType == MapSegmentBrushType.None || brushType == MapSegmentBrushType.Pipett) {
+        if(!BrushAllowsSelection(brushType)) {
             MapSegment.CurrentTileSelection.Clear();
         }
 
-        if(brushType == MapSegmentBrushType.Block || brushType == MapSegmentBrushType.Fill) {
+        if(!BrushAllowsBlockSelection(brushType)) {
             MapSegment.CurrentTileSelection.SetToSingleSelection();
         }
 
@@ -723,8 +760,6 @@ public class MapSegmentEditor : Editor
 
         MapSegment.CurrentLayer = layers[layerIndex];
         CurrentLayerIndex = layerIndex;
-
-        IgnoreSelection = true;
     }
 
     protected void HandleSingleBrush(MapSegment mapSegment)
@@ -793,9 +828,9 @@ public class MapSegmentEditor : Editor
 
             int tileTypeId = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
 
-            foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(tilePosition), tileTypeId, MapSegment)) {
-                //Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTileSelection, mapSegment.CurrentTileId, mapSegment);
-            }
+            //foreach (var tilePoint in FindAllAdjecentTilesOfType(new Point(tilePosition), tileTypeId, MapSegment)) {
+            //    Paint(tilePoint.X, tilePoint.X, mapSegment.CurrentTileSelection, mapSegment.CurrentTileId, mapSegment);
+            //}
         }
     }
 
@@ -930,9 +965,27 @@ public class MapSegmentEditor : Editor
             uvs[uvOffset + i] = tile.UvCords[i];
         }
 
-        Undo.RecordObjects(new Object[] { targetLayer, targetLayer.GetComponent<MeshFilter>().sharedMesh }, "Painted tile");
+        //Undo.RecordObjects(new Object[] { targetLayer, targetLayer.GetComponent<MeshFilter>().sharedMesh }, "Painted tile");
 
-        target.CurrentLayer.TilesCollection.SetTileType(x, y, tileType);
+        targetLayer.TilesCollection.SetTileType(x, y, tileType);
         targetLayer.MeshFilter.sharedMesh.uv = uvs;
+    }
+
+    protected bool BrushAllowsSelection(MapSegmentBrushType type)
+    {
+        if(type ==  MapSegmentBrushType.Block || type == MapSegmentBrushType.Fill || type == MapSegmentBrushType.Single) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected bool BrushAllowsBlockSelection(MapSegmentBrushType type)
+    {
+        if(type == MapSegmentBrushType.Single) {
+            return true;
+        }
+
+        return false;
     }
 }
