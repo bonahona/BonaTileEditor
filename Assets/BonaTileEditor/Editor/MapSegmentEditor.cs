@@ -52,6 +52,8 @@ public class MapSegmentEditor : Editor
     public bool MouseLeftClicked { get; set; }
     public bool MouseRightClicked { get; set; }
     public IntVector2 BlockStart { get; set; }
+
+    public MapSegmentPreview MapSegmentPreview { get; set; }
     #endregion
 
     // Loaded resources
@@ -167,6 +169,10 @@ public class MapSegmentEditor : Editor
 
     public override void OnInspectorGUI()
     {
+        if (MapSegmentPreview == null) {
+            MapSegmentPreview = GetOrCreatePreview();
+        }
+
         SetDefaults();
         UpdateMouseClick();
 
@@ -1000,5 +1006,19 @@ public class MapSegmentEditor : Editor
         }
 
         return false;
+    }
+
+    public MapSegmentPreview GetOrCreatePreview( )
+    {
+        Debug.Log("GetOrCreatePreview");
+        var result = MapSegment.GetComponentInChildren<MapSegmentPreview>();
+
+        if (result != null) {
+            var gameObject = new GameObject("MapSegmentPreview");
+            gameObject.transform.parent = MapSegment.transform;
+            result = gameObject.AddComponent<MapSegmentPreview>();
+        }
+
+        return result;
     }
 }
