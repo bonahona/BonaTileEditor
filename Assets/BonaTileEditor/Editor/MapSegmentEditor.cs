@@ -789,7 +789,7 @@ public class MapSegmentEditor : Editor
         if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
             var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
-            Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection, mapSegment);
+            mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection);
 
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -815,7 +815,7 @@ public class MapSegmentEditor : Editor
 
                     for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
                         for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
-                            Paint(new Point(x, y), MapSegment.CurrentTileSelection, mapSegment);
+                            mapSegment.Paint(new Point(x, y), MapSegment.CurrentTileSelection);
                         }
                     }
 
@@ -846,7 +846,7 @@ public class MapSegmentEditor : Editor
             var adjecentTiles = FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType, mapSegment);
 
             foreach (var adjecentTile in adjecentTiles) {
-                Paint(adjecentTile, mapSegment.CurrentTileSelection, mapSegment);
+                mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection);
             }
 
             // Set dirty so the editor serializes it
@@ -915,81 +915,7 @@ public class MapSegmentEditor : Editor
 
         return result;
     }
-
-    public void Paint(Point point, MapSegmentSelection selection, MapSegment target)
-    {
-        if (point.X < 0 || point.Y < 0) {
-            Debug.LogWarning(string.Format("Could not paint tile {0}:{1}", point.X, point.Y));
-            return;
-        }
-
-        var targetLayer = target.CurrentLayer;
-
-        for(int y = 0; y < selection.Height; y++) {
-            for(int x = 0; x < selection.Width; x++) {
-                if(ValidateBounds(x, y, point, target)) {
-                    var currentX = point.X + x;
-                    var currentY = point.Y - y;
-
-                    // The tiles are counted from down to up in the inspector, so this needs to be inverted
-                    var tileY = (selection.Height - 1) - y;
-
-                    var tileType = selection.GetTileType(x, tileY);
-                    var tile = targetLayer.TileSetLayer.Tiles[tileType];
-
-                    PaintTile(currentX, currentY, tile, tileType, target);
-                }
-            }
-        }
-    }
-
-    protected bool ValidateBounds(int offsetX, int offsetY, Point startPoint, MapSegment mapSegment)
-    {
-        if(startPoint.X + offsetX >= mapSegment.Width) {
-            return false;
-        }
-
-        if(startPoint.Y + offsetY >= mapSegment.Height) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public void Paint(MapSegmentBlock block, MapSegmentSelection selection, MapSegment target)
-    {
-        
-    }
-
-    public void PaintTile(int x, int y, Tile tile, int tileType, MapSegment target)
-    {
-        if (x < 0 || y < 0) {
-            Debug.LogWarning(string.Format("Could not paint tile {0}:{1}", x, y));
-            return;
-        }
-
-        var targetLayer = MapSegment.CurrentLayer;
-        if (targetLayer.MeshFilter == null) {
-            targetLayer.MeshFilter = targetLayer.GetComponent<MeshFilter>();
-            if (targetLayer.MeshFilter == null) {
-                return;
-            }
-        }
-
-        Vector2[] uvs = targetLayer.MeshFilter.sharedMesh.uv;
-
-        int uvOffset = ((y * Width) + x) * 4;
-
-        for (int i = 0; i < 4; i++) {
-            uvs[uvOffset + i] = tile.UvCords[i];
-        }
-
-        //Undo.RecordObjects(new Object[] { targetLayer, targetLayer.GetComponent<MeshFilter>().sharedMesh }, "Painted tile");
-
-        targetLayer.TilesCollection.SetTileType(x, y, tileType);
-        targetLayer.MeshFilter.sharedMesh.uv = uvs;
-    }
-
+   
     protected bool BrushAllowsSelection(MapSegmentBrushType type)
     {
         if(type ==  MapSegmentBrushType.Block || type == MapSegmentBrushType.Fill || type == MapSegmentBrushType.Single) {

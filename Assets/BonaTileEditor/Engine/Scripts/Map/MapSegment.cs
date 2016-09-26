@@ -28,7 +28,49 @@ public class MapSegment : MonoBehaviour {
             }
         }
 
-
         return false;
+    }
+
+    public bool HasPreviewObject()
+    {
+        var previewObject = GetComponentInChildren<MapSegmentPreview>();
+        return (previewObject != null);
+    }
+
+    public MapSegmentPreview CreatePreviewObject()
+    {
+        var gameObject = new GameObject("Preview");
+        gameObject.transform.parent = transform;
+        gameObject.transform.localPosition = Vector3.zero;
+        gameObject.transform.localRotation = Quaternion.identity;
+        gameObject.transform.localScale = Vector3.one;
+
+        var result = gameObject.AddComponent<MapSegmentPreview>();
+        return result;
+    }
+
+    public bool ValidateBounds(int offsetX, int offsetY, Point startPoint)
+    {
+        var currentX = startPoint.X + offsetX;
+        var currentY = startPoint.Y + offsetY;
+
+        if (currentX < 0 || currentX >= Width) {
+            return false;
+        }
+
+        if (currentY < 0 || currentY >= Height) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public void Paint(Point point, MapSegmentSelection selection)
+    {
+        if (CurrentLayer == null) {
+            return;
+        }
+
+        CurrentLayer.Paint(point, selection);
     }
 }
