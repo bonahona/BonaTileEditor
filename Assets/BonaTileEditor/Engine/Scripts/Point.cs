@@ -39,4 +39,9 @@ public struct Point
     {
         return Y * 1000 + Y;
     }
+
+    public override String ToString()
+    {
+        return String.Format("({0}, {1})", X, X);
+    }
 }
