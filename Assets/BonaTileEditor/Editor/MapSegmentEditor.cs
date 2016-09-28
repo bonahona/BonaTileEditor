@@ -36,7 +36,6 @@ public class MapSegmentEditor : Editor
 
     public bool MainFoldout { get; set; }
     public bool TileSetFoldout { get; set; }
-    public bool OptionsFoldout { get; set; }
 
     public bool AltPress { get; set; }
     public bool ControlPress { get; set; }
@@ -72,7 +71,6 @@ public class MapSegmentEditor : Editor
         GridTileSize = MapSegment.GridTileSize;
 
         TileSetFoldout = true;
-        OptionsFoldout = false;
 
         var layers = MapSegment.GetComponentsInChildren<MapSegmentLayer>();
         CurrentLayerIndex = 0;
@@ -194,17 +192,8 @@ public class MapSegmentEditor : Editor
             DrawTileSetSegment();
         }
 
-        OptionsFoldout = EditorGUILayout.Foldout(OptionsFoldout, "Options");
-        if (OptionsFoldout) {
-            GridTileSize = EditorGUILayout.Vector2Field("Grid Tile Size", GridTileSize);
-        }
-
-        if (GUILayout.Button("Apply")) {
-            Apply();
-        }
-
-        if (GUILayout.Button("Reset")) {
-            Reset();
+        if(GUILayout.Button("Update collider")){
+            UpdateCollider();
         }
 
         Repaint();
@@ -253,6 +242,18 @@ public class MapSegmentEditor : Editor
         Width = EditorGUILayout.IntSlider(new GUIContent("Width", SEGMENT_WIDTH_TOOLTIP), Width, 0, MAX_WIDTH);
         Height = EditorGUILayout.IntSlider(new GUIContent("Height", SEGMENT_HEIGHT_TOOLTIP), Height, 0, MAX_HEIGHT);
         TileSet = (TileSet)EditorGUILayout.ObjectField(TileSet, typeof(TileSet), false);
+        EditorGUILayout.Separator();
+
+        GridTileSize = EditorGUILayout.Vector2Field("Grid Tile Size", GridTileSize);
+        EditorGUILayout.Separator();
+
+        if (GUILayout.Button("Apply")) {
+            Apply();
+        }
+
+        if (GUILayout.Button("Reset")) {
+            Reset();
+        }
     }
 
     protected void DrawTileSetSegment()
@@ -932,5 +933,12 @@ public class MapSegmentEditor : Editor
         }
 
         return false;
+    }
+
+    protected void UpdateCollider()
+    {
+        var resultPathing = MapSegment.GetMapSegmentPathing();
+        Debug.Log(resultPathing);
+
     }
 }

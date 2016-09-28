@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public class MapSegment : MonoBehaviour {
 
@@ -72,5 +73,65 @@ public class MapSegment : MonoBehaviour {
         }
 
         CurrentLayer.Paint(point, selection);
+    }
+
+    public List<MapSegmentLayer> GetOrderedLayerList()
+    {
+        var result = new List<MapSegmentLayer>();
+
+        var mapSegmentLayers = GetComponentsInChildren<MapSegmentLayer>();
+        var baseLayers = mapSegmentLayers.Where(m => m.TileSetLayer.LayerType == TileSetLayerType.BaseLayer).ToList();
+        var overaysLayers = mapSegmentLayers.Where(m => m.TileSetLayer.LayerType == TileSetLayerType.Overlay).ToList();
+        var onTopLayers = mapSegmentLayers.Where(m => m.TileSetLayer.LayerType == TileSetLayerType.OnTopOverlay).ToList();
+        result.AddRange(baseLayers);
+        result.AddRange(overaysLayers);
+        result.AddRange(onTopLayers);
+
+        return result; 
+    }
+
+    public MapSegmentPathing GetMapSegmentPathing()
+    {
+        var result = new MapSegmentPathing(Width, Height);
+        var mapSegmentLayers = GetOrderedLayerList();
+
+        // Get a complete map of all walkable and unwalkable tiles
+        for (int y = 0; y < Height; y++) {
+            for (int x = 0; x < Width; x++) {
+                var currentPoint = new Point(x, y);
+                result.SetCordinate(x, y, GetPathTileForCordinate(currentPoint, mapSegmentLayers));
+            }
+        }
+
+        return result;
+    }
+
+    public MapSegmentPathTile GetPathTileForCordinate(Point point, List<MapSegmentLayer> layers)
+    {
+        var result = new MapSegmentPathTile();
+
+        var isWalkable = false;
+
+        var test = "====\n";
+
+        foreach (var layer in layers) {
+            var tileType = layer.TilesCollection.GetTileType(point.ToInt2Vector());
+
+            test += layer.TileSetLayer.Tiles[tileType].Pathing.ToString() + "\n";
+            // Base layer overrides
+            if(layer.TileSetLayer.Tiles[tileType].Pathing == TilePathing.BaseWalkable) {
+                isWalkable = true;
+            } else if (layer.TileSetLayer.Tiles[tileType].Pathing == TilePathing.OverlayUnwalkable) {
+                isWalkable = false;
+            } else if (layer.TileSetLayer.Tiles[tileType].Pathing == TilePathing.OverlayWalkable) {
+                isWalkable = true;
+            }
+        }
+
+        Debug.Log(test);
+
+
+        result.IsWalkable = isWalkable;
+        return result;
     }
 }
