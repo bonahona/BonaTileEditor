@@ -11,7 +11,6 @@ public class TileSetEditor : Editor
 
     public TileSet TileSet;
     public List<TileSetLayer> LocalLayers;
-    public List<bool> ShowFoldout;
 
     public GUIStyle GuiStyle;
 
@@ -30,15 +29,36 @@ public class TileSetEditor : Editor
         TileSet = (TileSet)target;
         LocalLayers = new List<TileSetLayer>();
         foreach (var entry in TileSet.Layers) {
-            var tmpEntry = entry.Clone();
+            var tmpEntry = new TileSetLayer(entry);
             tmpEntry.Applied = true;
             LocalLayers.Add(tmpEntry);
         }
+    }
 
-        ShowFoldout = new List<bool>();
-        for (int i = 0; i < LocalLayers.Count; i++) {
-            ShowFoldout.Add(false);
+    public List<string> GetGuids()
+    {
+        var result = new List<string>();
+        foreach(var layer in TileSet.Layers) {
+            result.Add(layer.Guid);
         }
+
+        return result;
+    }
+
+    public bool ContainsLayer(TileSetLayer layer)
+    {
+        return (GetGuids().Contains(layer.Guid));
+    }
+
+    public TileSetLayer GetLayerFromGuid(string guid)
+    {
+        foreach(var layer in TileSet.Layers) {
+            if(layer.Guid == guid) {
+                return layer;
+            }
+        }
+
+        return null;
     }
 
     public void Apply()
@@ -55,11 +75,14 @@ public class TileSetEditor : Editor
             }
         }
 
-        TileSet.Layers = new List<TileSetLayer>();
-        foreach (var entry in LocalLayers) {
-            var tmpEntry = entry.Clone();
-            tmpEntry.Applied = true;
-            TileSet.Layers.Add(tmpEntry);
+        foreach (var layer in LocalLayers) {
+            var tileSetEntry = GetLayerFromGuid(layer.Guid);
+            if(tileSetEntry == null) {
+                tileSetEntry = new TileSetLayer(layer);
+                TileSet.Layers.Add(tileSetEntry);
+            }else {
+                tileSetEntry.CopyFrom(layer);
+            }
         }
 
         // Make sure the new tileset is saved
@@ -85,8 +108,9 @@ public class TileSetEditor : Editor
 
     public void AddLayer()
     {
-        LocalLayers.Add(new TileSetLayer());
-        ShowFoldout.Add(true);
+        var localLayer = new TileSetLayer();
+        localLayer.IsOpenInEditor = true;
+        LocalLayers.Add(localLayer);
 
         this.Repaint();
     }
@@ -97,14 +121,14 @@ public class TileSetEditor : Editor
             AddLayer();
         }
 
-        int index = 0;
         foreach (var entry in LocalLayers) {
-            ShowFoldout[index] = EditorGUILayout.Foldout(ShowFoldout[index], entry.Name);
+            entry.IsOpenInEditor = EditorGUILayout.Foldout(entry.IsOpenInEditor, entry.Name);
 
-            if (ShowFoldout[index]) {
+            if (entry.IsOpenInEditor) {
                 DrawLayerEditor(entry);
             }
-            ++index;
+
+            EditorUtility.SetDirty(target);
         }
 
         if (GUILayout.Button("Apply")) {

@@ -36,7 +36,6 @@ public class MapSegmentEditor : Editor
 
     public bool MainFoldout { get; set; }
     public bool TileSetFoldout { get; set; }
-    public bool OptionsFoldout { get; set; }
 
     public bool AltPress { get; set; }
     public bool ControlPress { get; set; }
@@ -71,7 +70,6 @@ public class MapSegmentEditor : Editor
         GridTileSize = MapSegment.GridTileSize;
 
         TileSetFoldout = true;
-        OptionsFoldout = false;
 
         var layers = MapSegment.GetComponentsInChildren<MapSegmentLayer>();
         CurrentLayerIndex = 0;
@@ -107,29 +105,31 @@ public class MapSegmentEditor : Editor
         MapSegment.TileSet = TileSet;
 
         MapSegment.GridTileSize = GridTileSize;
+
+        TileSet.AddMapSegment(MapSegment);
         ApplyTilsetChanges();
         EditorUtility.SetDirty(target);
     }
 
     public void ApplyTilsetChanges()
     {
+        // Find any layers that is in the map segment but not in the tileset
+        foreach(var layer in MapSegment.GetComponentsInChildren<MapSegmentLayer>()) {
+            if (!TileSet.HasLayer(layer.TileSetLayer)) {
+                GameObject.DestroyImmediate(layer.gameObject);
+                Debug.Log("Destroy layer");
+            }
+        }
+
+        // ALter or create new layers for the ones found in the 
         for(int i = 0; i < TileSet.Layers.Count; i++) {
             var layer = TileSet.Layers[i];
 
             if (MapSegment.HasLayerOfType(layer)) {
+
                 AlterLayer(layer, i);
             } else {
                 CreateNewLayer(layer, i);
-            }
-        }
-
-
-        // Also make sure there are no remnats of layers no longer present in the tileset
-        var tileSetGuid = GetGuidsForLayers();
-
-        foreach (var tileSetLayer in MapSegment.GetComponentsInChildren<MapSegmentLayer>()) {
-            if (!tileSetGuid.Contains(tileSetLayer.TileSetLayer.Guid)) {
-                GameObject.DestroyImmediate(tileSetLayer.gameObject);
             }
         }
 
@@ -193,17 +193,8 @@ public class MapSegmentEditor : Editor
             DrawTileSetSegment();
         }
 
-        OptionsFoldout = EditorGUILayout.Foldout(OptionsFoldout, "Options");
-        if (OptionsFoldout) {
-            GridTileSize = EditorGUILayout.Vector2Field("Grid Tile Size", GridTileSize);
-        }
-
-        if (GUILayout.Button("Apply")) {
-            Apply();
-        }
-
-        if (GUILayout.Button("Reset")) {
-            Reset();
+        if(GUILayout.Button("Update collider")){
+            UpdateCollider();
         }
 
         Repaint();
@@ -252,6 +243,18 @@ public class MapSegmentEditor : Editor
         Width = EditorGUILayout.IntSlider(new GUIContent("Width", SEGMENT_WIDTH_TOOLTIP), Width, 0, MAX_WIDTH);
         Height = EditorGUILayout.IntSlider(new GUIContent("Height", SEGMENT_HEIGHT_TOOLTIP), Height, 0, MAX_HEIGHT);
         TileSet = (TileSet)EditorGUILayout.ObjectField(TileSet, typeof(TileSet), false);
+        EditorGUILayout.Separator();
+
+        GridTileSize = EditorGUILayout.Vector2Field("Grid Tile Size", GridTileSize);
+        EditorGUILayout.Separator();
+
+        if (GUILayout.Button("Apply")) {
+            Apply();
+        }
+
+        if (GUILayout.Button("Reset")) {
+            Reset();
+        }
     }
 
     protected void DrawTileSetSegment()
@@ -416,6 +419,7 @@ public class MapSegmentEditor : Editor
 
         if (segmentGameObject != null) {
             var layer = segmentGameObject.GetComponent<MapSegmentLayer>();
+            layer.TileSetLayer = tileSetLayer;
             ApplyChanges(layer, segmentGameObject, layerIndex);
         }
     }
@@ -798,5 +802,15 @@ public class MapSegmentEditor : Editor
         }
 
         return false;
+    }
+
+    protected void UpdateCollider()
+    {
+        try {
+            var resultPathing = MapSegment.GetMapSegmentPathing();
+            Debug.Log(resultPathing);
+        }catch(System.Exception) {
+            Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");
+        }
     }
 }

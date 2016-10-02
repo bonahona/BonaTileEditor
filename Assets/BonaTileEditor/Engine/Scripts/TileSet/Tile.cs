@@ -10,20 +10,30 @@ public class Tile
     public Rect Rect;
     public TilePathing Pathing;
 
-    public Tile Clone()
+    public Tile()
     {
-        Tile result = new Tile();
-        result.X = X;
-        result.Y = Y;
-        result.Rect = Rect;
-        result.Pathing = Pathing;
+        X = 0;
+        Y = 0;
+        UvCords = new Vector2[0];
+        Rect = new Rect();
+        Pathing = TilePathing.BaseUnwalkable;
+    }
 
-        result.UvCords = new Vector2[UvCords.Length];
+    public Tile(Tile other)
+    {
+        CopyFrom(other);
+    }
 
+    public void CopyFrom(Tile other)
+    {
+        X = other.X;
+        Y = other.Y;
+        Rect = other.Rect;
+        Pathing = other.Pathing;
+
+        UvCords = new Vector2[other.UvCords.Length];
         for (int i = 0; i < UvCords.Length; i++) {
-            result.UvCords[i] = UvCords[i];
+            UvCords[i] = other.UvCords[i];
         }
-
-        return result;
     }
 }

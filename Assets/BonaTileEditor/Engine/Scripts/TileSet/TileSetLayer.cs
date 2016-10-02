@@ -19,41 +19,61 @@ public class TileSetLayer
 
     public Tile[] Tiles;
 
+    // Make this serialized to, to make the editor easier to use
+    public bool IsOpenInEditor;
+
     public TileSetLayer()
     {
         this.Guid = System.Guid.NewGuid().ToString();
         this.Name = "Unnamed layer";
     }
 
-    public TileSetLayer Clone()
+    public TileSetLayer(TileSetLayer other)
     {
-        TileSetLayer result = new TileSetLayer();
-        result.Guid = Guid;
-        result.Name = Name;
-        result.TileSetWidth = TileSetWidth;
-        result.TileSetHeight = TileSetHeight;
-        result.LayerType = LayerType;
-        result.Texture = Texture;
-        result.UvOffsetSize = UvOffsetSize;
+        Tiles = new Tile[0];
+        CopyFrom(other);
+    }
 
-        result.Tiles = new Tile[this.Tiles.Length];
+    public void CopyFrom(TileSetLayer other)
+    {
+        Guid = other.Guid;
+        Name = other.Name;
+        TileSetWidth = other.TileSetWidth;
+        TileSetHeight = other.TileSetHeight;
+        LayerType = other.LayerType;
+        Texture = other.Texture;
+        UvOffsetSize = other.UvOffsetSize;
+
+        Tiles = CopyTiles(Tiles, other.Tiles.Length);
         for (int i = 0; i < Tiles.Length; i++) {
-            result.Tiles[i] = Tiles[i].Clone();
+            Tiles[i].CopyFrom(other.Tiles[i]);
         }
 
-        result.Applied = false;
+        Applied = false;
+    }
 
+    public Tile[] CopyTiles(Tile[] original, int length)
+    {
+        var result = new Tile[length];
+
+        for (int i = 0; i < length; i++) {
+            if (i < original.Length) {
+                result[i] = original[i];
+            }else {
+                result[i] = new Tile();
+            }
+        }
         return result;
     }
 
-    public void SetLayer(TileSetLayerType layerType)
+    public void SetDefaultLayer(TileSetLayerType layerType, Tile[] tiles)
     {
         if (layerType == TileSetLayerType.BaseLayer) {
-            foreach (var tile in Tiles) {
+            foreach (var tile in tiles) {
                 tile.Pathing = TilePathing.BaseUnwalkable;
             }
         } else if (layerType == TileSetLayerType.OnTopOverlay || layerType == TileSetLayerType.Overlay) {
-            foreach (var tile in Tiles) {
+            foreach (var tile in tiles) {
                 tile.Pathing = TilePathing.OverlayInherit;
             }
         }
@@ -75,7 +95,7 @@ public class TileSetLayer
         }
 
         int tileCount = TileSetWidth * TileSetHeight;
-        Tiles = new Tile[tileCount];
+        var tiles = new Tile[tileCount];
 
         UvOffsetSize = new Vector2();
         UvOffsetSize.x = 1.0f / TileSetWidth;
@@ -84,18 +104,18 @@ public class TileSetLayer
         for (int y = 0; y < TileSetHeight; y++) {
             for (int x = 0; x < TileSetWidth; x++) {
                 int num = (y * TileSetWidth) + x;
-                Tiles[num] = new Tile { X = x, Y = y };
-                Tiles[num].UvCords = new Vector2[4];
-                Tiles[num].UvCords[0] = new Vector2(x * UvOffsetSize.x, y * UvOffsetSize.y);
-                Tiles[num].UvCords[1] = new Vector2((x + 1) * UvOffsetSize.x, y * UvOffsetSize.y);
-                Tiles[num].UvCords[2] = new Vector2(x * UvOffsetSize.x, (y + 1) * UvOffsetSize.y);
-                Tiles[num].UvCords[3] = new Vector2((x + 1) * UvOffsetSize.x, (y + 1) * UvOffsetSize.y);
-                Tiles[num].Rect = new Rect(x * UvOffsetSize.x, y * UvOffsetSize.y, UvOffsetSize.x, UvOffsetSize.y);
-
+                tiles[num] = new Tile { X = x, Y = y };
+                tiles[num].UvCords = new Vector2[4];
+                tiles[num].UvCords[0] = new Vector2(x * UvOffsetSize.x, y * UvOffsetSize.y);
+                tiles[num].UvCords[1] = new Vector2((x + 1) * UvOffsetSize.x, y * UvOffsetSize.y);
+                tiles[num].UvCords[2] = new Vector2(x * UvOffsetSize.x, (y + 1) * UvOffsetSize.y);
+                tiles[num].UvCords[3] = new Vector2((x + 1) * UvOffsetSize.x, (y + 1) * UvOffsetSize.y);
+                tiles[num].Rect = new Rect(x * UvOffsetSize.x, y * UvOffsetSize.y, UvOffsetSize.x, UvOffsetSize.y);
             }
         }
-        SetLayer(LayerType);
 
+        SetDefaultLayer(LayerType, tiles);
+        Tiles = tiles;
         Applied = true;
         return true;
     }

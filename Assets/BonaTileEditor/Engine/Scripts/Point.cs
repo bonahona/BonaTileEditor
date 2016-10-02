@@ -40,6 +40,11 @@ public struct Point
         return Y * 1000 + Y;
     }
 
+    public IntVector2 ToInt2Vector()
+    {
+        return new IntVector2 { X = X, Y = Y };
+    }
+
     public override String ToString()
     {
         return String.Format("({0}, {1})", X, X);
