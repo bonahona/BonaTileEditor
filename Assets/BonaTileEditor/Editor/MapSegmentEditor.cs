@@ -106,6 +106,8 @@ public class MapSegmentEditor : Editor
         MapSegment.TileSet = TileSet;
 
         MapSegment.GridTileSize = GridTileSize;
+
+        TileSet.AddMapSegment(MapSegment);
         ApplyTilsetChanges();
         EditorUtility.SetDirty(target);
     }
@@ -116,8 +118,11 @@ public class MapSegmentEditor : Editor
             var layer = TileSet.Layers[i];
 
             if (MapSegment.HasLayerOfType(layer)) {
+                Debug.Log("Alter layer");
+
                 AlterLayer(layer, i);
             } else {
+                Debug.Log("Create new layer");
                 CreateNewLayer(layer, i);
             }
         }
@@ -418,6 +423,10 @@ public class MapSegmentEditor : Editor
 
         if (segmentGameObject != null) {
             var layer = segmentGameObject.GetComponent<MapSegmentLayer>();
+
+            var test = tileSetLayer == layer.TileSetLayer;
+            Debug.Log("Test = " + test);
+
             ApplyChanges(layer, segmentGameObject, layerIndex);
         }
     }

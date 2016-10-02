@@ -112,12 +112,9 @@ public class MapSegment : MonoBehaviour {
 
         var isWalkable = false;
 
-        var test = "====\n";
-
         foreach (var layer in layers) {
             var tileType = layer.TilesCollection.GetTileType(point.ToInt2Vector());
 
-            test += layer.TileSetLayer.Tiles[tileType].Pathing.ToString() + "\n";
             // Base layer overrides
             if(layer.TileSetLayer.Tiles[tileType].Pathing == TilePathing.BaseWalkable) {
                 isWalkable = true;
@@ -127,9 +124,6 @@ public class MapSegment : MonoBehaviour {
                 isWalkable = true;
             }
         }
-
-        Debug.Log(test);
-
 
         result.IsWalkable = isWalkable;
         return result;

@@ -25,24 +25,41 @@ public class TileSetLayer
         this.Name = "Unnamed layer";
     }
 
-    public TileSetLayer Clone()
+    public TileSetLayer(TileSetLayer other)
     {
-        TileSetLayer result = new TileSetLayer();
-        result.Guid = Guid;
-        result.Name = Name;
-        result.TileSetWidth = TileSetWidth;
-        result.TileSetHeight = TileSetHeight;
-        result.LayerType = LayerType;
-        result.Texture = Texture;
-        result.UvOffsetSize = UvOffsetSize;
+        Tiles = new Tile[0];
+        CopyFrom(other);
+    }
 
-        result.Tiles = new Tile[this.Tiles.Length];
+    public void CopyFrom(TileSetLayer other)
+    {
+        Guid = other.Guid;
+        Name = other.Name;
+        TileSetWidth = other.TileSetWidth;
+        TileSetHeight = other.TileSetHeight;
+        LayerType = other.LayerType;
+        Texture = other.Texture;
+        UvOffsetSize = other.UvOffsetSize;
+
+        Tiles = CopyTiles(Tiles, other.Tiles.Length);
         for (int i = 0; i < Tiles.Length; i++) {
-            result.Tiles[i] = Tiles[i].Clone();
+            Tiles[i].CopyFrom(other.Tiles[i]);
         }
 
-        result.Applied = false;
+        Applied = false;
+    }
 
+    public Tile[] CopyTiles(Tile[] original, int length)
+    {
+        var result = new Tile[length];
+
+        for (int i = 0; i < length; i++) {
+            if (i < original.Length) {
+                result[i] = original[i];
+            }else {
+                result[i] = new Tile();
+            }
+        }
         return result;
     }
 
