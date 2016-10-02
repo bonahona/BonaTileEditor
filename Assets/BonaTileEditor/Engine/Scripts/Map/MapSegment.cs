@@ -61,7 +61,7 @@ public class MapSegment : MonoBehaviour {
     public bool ValidateBounds(int offsetX, int offsetY, Point startPoint)
     {
         var currentX = startPoint.X + offsetX;
-        var currentY = startPoint.Y + offsetY;
+        var currentY = startPoint.Y - offsetY;
 
         if (currentX < 0 || currentX >= Width) {
             return false;
