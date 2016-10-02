@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 public struct Point
 {
@@ -35,6 +36,18 @@ public struct Point
         return (lhs.X != rhs.X || lhs.Y != rhs.Y);
     }
 
+    public static Point operator+(Point lhs, Point rhs)
+    {
+        var result = new Point(lhs.X + rhs.X, lhs.Y + rhs.Y);
+        return result;
+    }
+
+    public static Point operator -(Point lhs, Point rhs)
+    {
+        var result = new Point(lhs.X - rhs.X, lhs.Y - rhs.Y);
+        return result;
+    }
+
     public override int GetHashCode()
     {
         return Y * 1000 + Y;
@@ -45,8 +58,13 @@ public struct Point
         return new IntVector2 { X = X, Y = Y };
     }
 
+    public Vector2 ToVector2()
+    {
+        return new Vector2(X, Y);
+    }
+
     public override String ToString()
     {
-        return String.Format("({0}, {1})", X, X);
+        return String.Format("({0}, {1})", X, Y);
     }
 }

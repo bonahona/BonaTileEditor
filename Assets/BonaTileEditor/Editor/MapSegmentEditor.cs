@@ -808,8 +808,13 @@ public class MapSegmentEditor : Editor
     {
         try {
             var resultPathing = MapSegment.GetMapSegmentPathing();
-            Debug.Log(resultPathing);
-        }catch(System.Exception) {
+            resultPathing.UpdateInternalBoundries();
+
+            var edgeCollider = MapSegment.GetComponent<EdgeCollider2D>();
+            var edges = resultPathing.GetPoints();
+            edgeCollider.points = edges.ToArray();
+
+        }catch(System.AccessViolationException) {
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");
         }
     }

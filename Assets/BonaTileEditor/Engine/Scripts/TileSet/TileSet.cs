@@ -31,9 +31,9 @@ public class TileSet : ScriptableObject
             }
         }
 
-        foreach(var mapSegment in MapSegments) {
-            //mapSegment.ApplyTilsetChanges();
-        }
+        //foreach(var mapSegment in MapSegments) {
+        //    //mapSegment.ApplyTilsetChanges();
+        //}
     }
 
     public bool HasLayer(TileSetLayer segmentLayer)
