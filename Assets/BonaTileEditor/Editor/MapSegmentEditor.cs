@@ -48,12 +48,11 @@ public class MapSegmentEditor : Editor
     public IntVector2 CurrentlyHoverPoint { get; set; }
 
     public IntVector2 SelectionBlockStart { get; set; }
-
+    
     public bool MouseLeftClicked { get; set; }
     public bool MouseRightClicked { get; set; }
     public IntVector2 BlockStart { get; set; }
 
-    public MapSegmentPreview MapSegmentPreview { get; set; }
     #endregion
 
     // Loaded resources
@@ -169,9 +168,9 @@ public class MapSegmentEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        //if (MapSegmentPreview == null) {
-        //    MapSegmentPreview = GetOrCreatePreview();
-        //}
+        if (!MapSegment.HasPreviewObject()) {
+            MapSegment.CreatePreviewObject();
+        }
 
         SetDefaults();
         UpdateMouseClick();
@@ -181,7 +180,7 @@ public class MapSegmentEditor : Editor
         }
 
         if (MapSegment.CurrentTileSelection == null) {
-            MapSegment.CurrentTileSelection = new MapSegmentSelection();
+            MapSegment.CurrentTileSelection = new MapSegmentPaletteSelection();
         }
 
         MainFoldout = EditorGUILayout.Foldout(MainFoldout, "Main data");
@@ -531,6 +530,7 @@ public class MapSegmentEditor : Editor
         result.z = ONTOP_OVERLAY_BASE_DEPTH + (layerIndex * ONTOP_OVERLAY_INCREMENT_DEPTH);
         return result;
     }
+
     protected void AddVertices(int x, int y, List<Vector3> vertices, Vector2 tileSize)
     {
         float sizeX = tileSize.x;
@@ -633,7 +633,7 @@ public class MapSegmentEditor : Editor
         RaycastHit = raycastHit;
 
         if (IsMouseOver) {
-            CurrentlyHoverPoint = GetTilePosition(mapSegment, raycastHit.point);
+            CurrentlyHoverPoint = mapSegment.GetTilePosition(raycastHit.point);
         } else {
             CurrentlyHoverPoint = null;
         }
@@ -648,78 +648,6 @@ public class MapSegmentEditor : Editor
             for(int i = 0; i < 9; i++) {
                 NumericButtonPress.Add(false);
             }
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftAlt) {
-            AltPress = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftAlt) {
-            AltPress = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftControl) {
-            ControlPress = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftControl) {
-            ControlPress = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.LeftShift) {
-            ShiftPress = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.LeftShift) {
-            ShiftPress = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha1) {
-            NumericButtonPress[0] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha1) {
-            NumericButtonPress[0] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha2) {
-            NumericButtonPress[1] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha2) {
-            NumericButtonPress[1] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha3) {
-            NumericButtonPress[2] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha3) {
-            NumericButtonPress[2] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha4) {
-            NumericButtonPress[3] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha4) {
-            NumericButtonPress[3] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha5) {
-            NumericButtonPress[4] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha5) {
-            NumericButtonPress[4] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha6) {
-            NumericButtonPress[5] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha6) {
-            NumericButtonPress[5] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha7) {
-            NumericButtonPress[6] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha7) {
-            NumericButtonPress[6] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha8) {
-            NumericButtonPress[7] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha8) {
-            NumericButtonPress[7] = false;
-        }
-
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Alpha9) {
-            NumericButtonPress[8] = true;
-        } else if (Event.current.type == EventType.KeyUp && Event.current.keyCode == KeyCode.Alpha9) {
-            NumericButtonPress[8] = false;
         }
     }
 
@@ -788,7 +716,7 @@ public class MapSegmentEditor : Editor
 
         if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
-            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
+            var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
             mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection);
 
             // Set dirty so the editor serializes it
@@ -804,7 +732,7 @@ public class MapSegmentEditor : Editor
             Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
 
             // Find the cordinates of the selected tile
-            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
+            var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
                 BlockStart = new IntVector2(tilePosition);
@@ -841,9 +769,9 @@ public class MapSegmentEditor : Editor
 
         if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
 
-            var tilePosition = GetTilePosition(mapSegment, raycastHit.point);
+            var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
             var tileType = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
-            var adjecentTiles = FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType, mapSegment);
+            var adjecentTiles = mapSegment.FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType);
 
             foreach (var adjecentTile in adjecentTiles) {
                 mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection);
@@ -852,69 +780,7 @@ public class MapSegmentEditor : Editor
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);
         }
-    }
-
-    protected List<Point> FindAllAdjecentTilesOfType(Point startPoint, int tileType, MapSegment mapSegment)
-    {
-        HashSet<Point> result = new HashSet<Point>();
-        SearchDepthFirst(startPoint, result, tileType, mapSegment);
-
-        return new List<Point>(result);
-    }
-
-    protected void SearchDepthFirst(Point currentPoint, HashSet<Point> result, int tileTypeId, MapSegment mapSegment)
-    {
-        // If the result set already contains this, the tile has already been processedes
-        if(result.Contains(currentPoint)){
-            return;
-        }
-
-        // We are looking outside the map segments max and min values regarding width and height
-        if(!IsWithinBounds(currentPoint, mapSegment)) {
-            return;
-        }
-
-        // This is not the tiletype where looking for
-        var currentTileTypeId = MapSegment.CurrentLayer.TilesCollection.GetTileType(currentPoint);
-        if (currentTileTypeId != tileTypeId) {
-            return;
-        }
-
-        result.Add(currentPoint);
-
-        for (int y = -1; y <= 1; y++) {
-            for (int x = -1; x <= 1; x++) {
-                if ((x != 0 || y != 0) && Mathf.Abs(x) != Mathf.Abs(y)) {
-                    Point tmpPoint = new Point(currentPoint.X + x, currentPoint.Y + y);
-                    SearchDepthFirst(tmpPoint, result, tileTypeId, mapSegment);
-                }
-            }
-        }
-    }
-
-    protected bool IsWithinBounds(Point point, MapSegment mapSegment)
-    {
-        if(point.X < 0 || point.Y < 0) {
-            return false;
-        }
-
-        if(point.X >= mapSegment.Width || point.Y >= mapSegment.Height) {
-            return false;
-        }
-
-        return true;
-    }
-
-    protected IntVector2 GetTilePosition(MapSegment mapSegment, Vector3 hitCordinate)
-    {
-        var result = new IntVector2();
-
-        var localHit = mapSegment.transform.InverseTransformPoint(hitCordinate);
-        result.X = Mathf.FloorToInt(localHit.x / mapSegment.GridTileSize.x);
-        result.Y = Mathf.FloorToInt(localHit.y / mapSegment.GridTileSize.y);
-
-        return result;
-    }
+    }    
    
     protected bool BrushAllowsSelection(MapSegmentBrushType type)
     {
