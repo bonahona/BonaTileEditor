@@ -50,30 +50,10 @@ public class MapSegmentPathing
     public void UpdateInternalBoundries()
     {
         foreach (var tile in GetAll()) {
-            tile.Left = GetTileOrDefault(new Point(tile.Point.X - 1, tile.Point.Y));
-            tile.Right = GetTileOrDefault(new Point(tile.Point.X + 1, tile.Point.Y));
-            tile.Up = GetTileOrDefault(new Point(tile.Point.X, tile.Point.Y - 1));
-            tile.Down = GetTileOrDefault(new Point(tile.Point.X, tile.Point.Y + 1));
-        }
-
-        for (int y = 0; y < Height; y++) {
-            for (int x = 0; x < Width; x++) {
-                var currentTile = PathingMap[x, y];
-                if (!currentTile.IsWalkable) {
-                    if(IsWalkable(new Point(x - 1, y))) {
-                        currentTile.Directions = (currentTile.Directions | MapSegmentDirection.Left);
-                    }
-                    if (IsWalkable(new Point(x + 1, y))) {
-                        currentTile.Directions = (currentTile.Directions | MapSegmentDirection.Right);
-                    }
-                    if (IsWalkable(new Point(x, y - 1))) {
-                        currentTile.Directions = (currentTile.Directions | MapSegmentDirection.Up);
-                    }
-                    if (IsWalkable(new Point(x, y + 1))) {
-                        currentTile.Directions = (currentTile.Directions | MapSegmentDirection.Down);
-                    }
-                }
-            }
+            tile.NeighbourLeft = GetTileOrDefault(new Point(tile.Point.X - 1, tile.Point.Y));
+            tile.NeighbourRight = GetTileOrDefault(new Point(tile.Point.X + 1, tile.Point.Y));
+            tile.NeighbourUp = GetTileOrDefault(new Point(tile.Point.X, tile.Point.Y - 1));
+            tile.NeighbourDown = GetTileOrDefault(new Point(tile.Point.X, tile.Point.Y + 1));
         }
     }
 
@@ -121,128 +101,91 @@ public class MapSegmentPathing
         var currentDirection = MapSegmentDirection.Up;
 
         result.Add(startTile.GetStartPoint(MapSegmentDirection.Up).ToVector2());
+        result.Add(startTile.GetEndPoint(MapSegmentDirection.Down).ToVector2());
 
-        while(currentTile != startTile || currentDirection != startDirection || result.Count == 1) {
-            currentTile = FindLastTileInLine(currentTile, currentDirection);
-            result.Add(currentTile.GetEndPoint(currentDirection).ToVector2());
-            currentDirection = GetNextDirection(currentTile, currentDirection);
-        }
+        //while(currentTile != startTile || currentDirection != startDirection || result.Count == 1) {
+        //    currentTile = FindLastTileInLine(currentTile, currentDirection);
+        //    result.Add(currentTile.GetEndPoint(currentDirection).ToVector2());
+        //    currentDirection = GetNextDirection(currentTile, currentDirection);
+        //}
         
         return result;
     }
 
     public MapSegmentDirection GetNextDirection(MapSegmentPathTile startTile, MapSegmentDirection currentDirection)
     {
-        if(currentDirection == MapSegmentDirection.Up) {
-            if((startTile.Directions & MapSegmentDirection.Right) == MapSegmentDirection.Right) {
-                return MapSegmentDirection.Right;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Left) == MapSegmentDirection.Left) {
-                return MapSegmentDirection.Right;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Down) == MapSegmentDirection.Down) {
-                return MapSegmentDirection.Right;
-            }
-        } else if (currentDirection == MapSegmentDirection.Right) {
-            if ((startTile.Directions & MapSegmentDirection.Down) == MapSegmentDirection.Down) {
-                return MapSegmentDirection.Down;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Up) == MapSegmentDirection.Up) {
-                return MapSegmentDirection.Up;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Left) == MapSegmentDirection.Left) {
-                return MapSegmentDirection.Left;
-            }
-        } else if (currentDirection == MapSegmentDirection.Down) {
-            if ((startTile.Directions & MapSegmentDirection.Left) == MapSegmentDirection.Left) {
-                return MapSegmentDirection.Left;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Right) == MapSegmentDirection.Right) {
-                return MapSegmentDirection.Right;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Up) == MapSegmentDirection.Up) {
-                return MapSegmentDirection.Up;
-            }
-        } else if (currentDirection == MapSegmentDirection.Left) {
-            if ((startTile.Directions & MapSegmentDirection.Up) == MapSegmentDirection.Up) {
-                return MapSegmentDirection.Up;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Down) == MapSegmentDirection.Down) {
-                return MapSegmentDirection.Down;
-            }
-            if ((startTile.Directions & MapSegmentDirection.Right) == MapSegmentDirection.Right) {
-                return MapSegmentDirection.Right;
-            }
-
-        }
-
+        // TODO: Implement logics
         return MapSegmentDirection.None;
     }
 
     public MapSegmentPathTile FindStartTile(List<MapSegmentPathTile> tiles)
     {
-        MapSegmentPathTile tmpStartTile = null;
         foreach (var tile in tiles) {
-            if((tile.Directions & MapSegmentDirection.Up) == MapSegmentDirection.Up) {
-                tmpStartTile = tile;
+            if (tile.IsNeighbourFree(MapSegmentDirection.Up)) {
+                return tile;
             }
         }
 
-        return FindFirstTileInLine(tmpStartTile, MapSegmentDirection.Up);
+        // In theory; this is not possible
+        return null;
     }
 
     public MapSegmentPathTile FindFirstTileInLine(MapSegmentPathTile tile, MapSegmentDirection direction)
     {
-        var tmpTile = tile;
-        var result = tile;
+        return null;
 
-        while(tmpTile != null && (tmpTile.Directions & direction) == direction) {
-            result = tmpTile;
-            tmpTile = GetPreviousTileInDirection(result, direction);
-        }
+        //var tmpTile = tile;
+        //var result = tile;
 
-        return result;
+        //while(tmpTile != null && (tmpTile.Directions & direction) == direction) {
+        //    result = tmpTile;
+        //    tmpTile = GetPreviousTileInDirection(result, direction);
+        //}
+
+        //return result;
     }
 
     public MapSegmentPathTile FindLastTileInLine(MapSegmentPathTile tile, MapSegmentDirection direction)
     {
-        var tmpTile = tile;
-        var result = tile;
+        return null;
 
-        while (tmpTile != null && (tmpTile.Directions & direction) == direction) {
-            result = tmpTile;
-            tmpTile = GetNextTileInDirection(result, direction);
-        }
+        //var tmpTile = tile;
+        //var result = tile;
 
-        return result;
+        //while (tmpTile != null && (tmpTile.Directions & direction) == direction) {
+        //    result = tmpTile;
+        //    tmpTile = GetNextTileInDirection(result, direction);
+        //}
+
+        //return result;
     }
 
     public MapSegmentPathTile GetPreviousTileInDirection(MapSegmentPathTile tile, MapSegmentDirection direction)
     {
-        if (direction == MapSegmentDirection.Up) {
-            return tile.Left;
-        } else if (direction == MapSegmentDirection.Down) {
-            return tile.Right;
-        } else if (direction == MapSegmentDirection.Left) {
-            return tile.Down;
-        } else if (direction == MapSegmentDirection.Right) {
-            return tile.Up;
-        }
+        //if (direction == MapSegmentDirection.Up) {
+        //    return tile.Left;
+        //} else if (direction == MapSegmentDirection.Down) {
+        //    return tile.Right;
+        //} else if (direction == MapSegmentDirection.Left) {
+        //    return tile.Down;
+        //} else if (direction == MapSegmentDirection.Right) {
+        //    return tile.Up;
+        //}
 
         return null;
     }
 
     public MapSegmentPathTile GetNextTileInDirection(MapSegmentPathTile tile, MapSegmentDirection direction)
     {
-        if(direction == MapSegmentDirection.Up) {
-            return tile.Right;
-        } else if(direction == MapSegmentDirection.Down) {
-            return tile.Left;
-        } else if (direction == MapSegmentDirection.Left) {
-            return tile.Up;
-        } else if (direction == MapSegmentDirection.Right) {
-            return tile.Down;
-        }
+        //if(direction == MapSegmentDirection.Up) {
+        //    return tile.Right;
+        //} else if(direction == MapSegmentDirection.Down) {
+        //    return tile.Left;
+        //} else if (direction == MapSegmentDirection.Left) {
+        //    return tile.Up;
+        //} else if (direction == MapSegmentDirection.Right) {
+        //    return tile.Down;
+        //}
 
         return null;
     }

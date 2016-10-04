@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 public class MapSegmentPathTile
 {
+    public const bool NULL_TILE_IS_WALKABLE = true;                 // Default value for how any non-existing nodes should be treated
+
     public static readonly Point UP_START_OFFSET = new Point(0, 1);
     public static readonly Point UP_END_OFFSET = new Point(1, 1);
     public static readonly Point RIGHT_START_OFFSET = new Point(1, 1);
@@ -14,27 +16,25 @@ public class MapSegmentPathTile
     public static readonly Point LEFT_END_OFFSET = new Point(0, 1);
 
     public bool IsWalkable { get; set; }
-    public MapSegmentDirection Directions { get; set; }
     public Point Point { get; set; }
 
-    public MapSegmentPathTile Up { get; set; }
-    public MapSegmentPathTile Down { get; set; }
-    public MapSegmentPathTile Left { get; set; }
-    public MapSegmentPathTile Right { get; set; }
+    public MapSegmentPathTile NeighbourUp { get; set; }
+    public MapSegmentPathTile NeighbourDown { get; set; }
+    public MapSegmentPathTile NeighbourLeft { get; set; }
+    public MapSegmentPathTile NeighbourRight { get; set; }
 
     public MapSegmentPathTile()
     {
         IsWalkable = false;
-        Directions = MapSegmentDirection.None;
     }
 
     public List<MapSegmentPathTile> GetNeighbours()
     {
         var result = new List<MapSegmentPathTile>();
-        result.Add(Up);
-        result.Add(Down);
-        result.Add(Left);
-        result.Add(Right);
+        result.Add(NeighbourUp);
+        result.Add(NeighbourDown);
+        result.Add(NeighbourLeft);
+        result.Add(NeighbourRight);
         return result;
     }
 
@@ -66,5 +66,31 @@ public class MapSegmentPathTile
         }
 
         return Point;
+    }
+
+    public bool IsNeighbourFree(MapSegmentDirection direction)
+    {
+        MapSegmentPathTile tile = null;
+
+        if (direction == MapSegmentDirection.Up) {
+            tile = NeighbourUp;
+        } else if (direction == MapSegmentDirection.Down) {
+            tile = NeighbourDown;
+        } else if (direction == MapSegmentDirection.Left) {
+            tile = NeighbourLeft;
+        } else if (direction == MapSegmentDirection.Right) {
+            tile = NeighbourRight;
+        }
+
+        return IsFree(tile);
+    }
+
+    protected bool IsFree(MapSegmentPathTile tile)
+    {
+        if (tile == null) {
+            return NULL_TILE_IS_WALKABLE;
+        } else {
+            return tile.IsWalkable;
+        }
     }
 }
