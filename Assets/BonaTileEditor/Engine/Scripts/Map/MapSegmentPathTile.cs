@@ -68,20 +68,26 @@ public class MapSegmentPathTile
         return Point;
     }
 
-    public bool IsNeighbourFree(MapSegmentDirection direction)
+    public MapSegmentPathTile GetNeighbour(MapSegmentDirection direction)
     {
-        MapSegmentPathTile tile = null;
+        MapSegmentPathTile result = null;
 
         if (direction == MapSegmentDirection.Up) {
-            tile = NeighbourUp;
+            result = NeighbourUp;
         } else if (direction == MapSegmentDirection.Down) {
-            tile = NeighbourDown;
+            result = NeighbourDown;
         } else if (direction == MapSegmentDirection.Left) {
-            tile = NeighbourLeft;
+            result = NeighbourLeft;
         } else if (direction == MapSegmentDirection.Right) {
-            tile = NeighbourRight;
+            result = NeighbourRight;
         }
 
+        return result;
+    }
+
+    public bool IsNeighbourFree(MapSegmentDirection direction)
+    {
+        var tile = GetNeighbour(direction);
         return IsFree(tile);
     }
 

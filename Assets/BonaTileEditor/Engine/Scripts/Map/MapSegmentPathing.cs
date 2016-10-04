@@ -96,12 +96,13 @@ public class MapSegmentPathing
     {
         var result = new List<Vector2>();
         var startTile = FindStartTile(tiles);
-        var currentTile = startTile;
-        var startDirection = MapSegmentDirection.Up;
-        var currentDirection = MapSegmentDirection.Up;
 
-        result.Add(startTile.GetStartPoint(MapSegmentDirection.Up).ToVector2());
-        result.Add(startTile.GetEndPoint(MapSegmentDirection.Down).ToVector2());
+        var currentNode = new MapSegmentTraverseResult { PathTile = startTile, Direction = MapSegmentDirection.Up };
+
+        while (currentNode != null) {
+            result.Add(currentNode.PathTile.GetStartPoint(currentNode.Direction).ToVector2());
+            currentNode = GetNextTile(currentNode);
+        }
 
         //while(currentTile != startTile || currentDirection != startDirection || result.Count == 1) {
         //    currentTile = FindLastTileInLine(currentTile, currentDirection);
@@ -112,11 +113,6 @@ public class MapSegmentPathing
         return result;
     }
 
-    public MapSegmentDirection GetNextDirection(MapSegmentPathTile startTile, MapSegmentDirection currentDirection)
-    {
-        // TODO: Implement logics
-        return MapSegmentDirection.None;
-    }
 
     public MapSegmentPathTile FindStartTile(List<MapSegmentPathTile> tiles)
     {
@@ -130,66 +126,17 @@ public class MapSegmentPathing
         return null;
     }
 
-    public MapSegmentPathTile FindFirstTileInLine(MapSegmentPathTile tile, MapSegmentDirection direction)
+    public MapSegmentTraverseResult GetNextTile(MapSegmentTraverseResult lastTile)
     {
-        return null;
+        MapSegmentTraverseResult result = null;
 
-        //var tmpTile = tile;
-        //var result = tile;
+        if (lastTile.PathTile.IsNeighbourFree(lastTile.Direction)) {
+            result = new MapSegmentTraverseResult { PathTile = lastTile.PathTile.GetNeighbour(lastTile.Direction), Direction = lastTile.Direction };
+        }
 
-        //while(tmpTile != null && (tmpTile.Directions & direction) == direction) {
-        //    result = tmpTile;
-        //    tmpTile = GetPreviousTileInDirection(result, direction);
-        //}
-
-        //return result;
+        return result;
     }
-
-    public MapSegmentPathTile FindLastTileInLine(MapSegmentPathTile tile, MapSegmentDirection direction)
-    {
-        return null;
-
-        //var tmpTile = tile;
-        //var result = tile;
-
-        //while (tmpTile != null && (tmpTile.Directions & direction) == direction) {
-        //    result = tmpTile;
-        //    tmpTile = GetNextTileInDirection(result, direction);
-        //}
-
-        //return result;
-    }
-
-    public MapSegmentPathTile GetPreviousTileInDirection(MapSegmentPathTile tile, MapSegmentDirection direction)
-    {
-        //if (direction == MapSegmentDirection.Up) {
-        //    return tile.Left;
-        //} else if (direction == MapSegmentDirection.Down) {
-        //    return tile.Right;
-        //} else if (direction == MapSegmentDirection.Left) {
-        //    return tile.Down;
-        //} else if (direction == MapSegmentDirection.Right) {
-        //    return tile.Up;
-        //}
-
-        return null;
-    }
-
-    public MapSegmentPathTile GetNextTileInDirection(MapSegmentPathTile tile, MapSegmentDirection direction)
-    {
-        //if(direction == MapSegmentDirection.Up) {
-        //    return tile.Right;
-        //} else if(direction == MapSegmentDirection.Down) {
-        //    return tile.Left;
-        //} else if (direction == MapSegmentDirection.Left) {
-        //    return tile.Up;
-        //} else if (direction == MapSegmentDirection.Right) {
-        //    return tile.Down;
-        //}
-
-        return null;
-    }
-
+    
     public List<MapSegmentPathTile> DepthFirstSearch(MapSegmentPathTile startTile)
     {
         var hashSet = new HashSet<MapSegmentPathTile>();
