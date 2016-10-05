@@ -64,7 +64,49 @@ public class MapSegmentPathing
 
         var tileGroups = GetGroups();
         foreach (var group in tileGroups) {
-            result.Add(GetGroupPoints(group));
+            var groupPoints = GetGroupPoints(group);
+            var minimizedGroupPoints = GetMinimizedColliderPointList(groupPoints);
+            result.Add(minimizedGroupPoints);
+        }
+
+        return result;
+    }
+
+    public List<Vector2> GetMinimizedColliderPointList(List<Vector2> vertices)
+    {
+        if(vertices == null) {
+            return null;
+        }
+
+        if(vertices.Count <= 1) {
+            return null;
+        }
+
+        var result = new List<Vector2>();
+
+        var startNode = vertices.First();
+        var currentNode = vertices.First();
+
+        for (int i = 1; i < vertices.Count; i++) {
+            var examinedNode = vertices[i];
+
+            if (startNode.x == currentNode.x && examinedNode.x == currentNode.x) {
+                currentNode = examinedNode;
+            } else if (startNode.y == currentNode.y && examinedNode.y == currentNode.y) {
+                currentNode = examinedNode;
+            } else {
+                result.Add(currentNode);
+                startNode = currentNode;
+                currentNode = examinedNode;
+            }
+        }
+
+        result.Add(vertices.Last());
+        Debug.Log("===");
+        Debug.Log(result.Count);
+        foreach (var node in result) {
+            Debug.Log(node);
+
         }
 
         return result;
