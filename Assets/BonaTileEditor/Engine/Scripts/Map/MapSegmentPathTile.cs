@@ -15,6 +15,15 @@ public class MapSegmentPathTile
     public static readonly Point LEFT_START_OFFSET = new Point(0, 0);
     public static readonly Point LEFT_END_OFFSET = new Point(0, 1);
 
+    public static bool IsFree(MapSegmentPathTile tile)
+    {
+        if (tile == null) {
+            return NULL_TILE_IS_WALKABLE;
+        } else {
+            return tile.IsWalkable;
+        }
+    }
+
     public bool IsWalkable { get; set; }
     public Point Point { get; set; }
 
@@ -91,12 +100,8 @@ public class MapSegmentPathTile
         return IsFree(tile);
     }
 
-    protected bool IsFree(MapSegmentPathTile tile)
+    public override string ToString()
     {
-        if (tile == null) {
-            return NULL_TILE_IS_WALKABLE;
-        } else {
-            return tile.IsWalkable;
-        }
+        return string.Format("Point={0}, IsWalkable={1}", Point, IsWalkable);
     }
 }

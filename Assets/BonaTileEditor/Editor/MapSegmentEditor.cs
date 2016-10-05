@@ -810,8 +810,8 @@ public class MapSegmentEditor : Editor
             var resultPathing = MapSegment.GetMapSegmentPathing();
             resultPathing.UpdateInternalBoundries();
 
-            var edgeCollider = MapSegment.GetComponent<EdgeCollider2D>();
             var edges = resultPathing.GetPoints();
+            var edgeCollider = MapSegment.GetComponent<EdgeCollider2D>();
             edgeCollider.points = edges.ToArray();
 
         }catch(System.AccessViolationException) {

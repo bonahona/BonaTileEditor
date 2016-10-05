@@ -95,29 +95,51 @@ public class MapSegmentPathing
     public List<Vector2> GetGroupPoints(List<MapSegmentPathTile> tiles)
     {
         var result = new List<Vector2>();
-        var startTile = FindStartTile(tiles);
+        var startTile = FindStartTile(tiles, MapSegmentDirection.Up);
+        var startNode = new MapSegmentTraverseResult { PathTile = startTile, Direction = MapSegmentDirection.Up };
+
+        result.Add(startNode.PathTile.GetStartPoint(MapSegmentDirection.Up).ToVector2());
 
         var currentNode = new MapSegmentTraverseResult { PathTile = startTile, Direction = MapSegmentDirection.Up };
-
-        while (currentNode != null) {
-            result.Add(currentNode.PathTile.GetStartPoint(currentNode.Direction).ToVector2());
-            currentNode = GetNextTile(currentNode);
+        while(!CheckTerminationCondition(currentNode, startNode, result)) {
+            result.Add(currentNode.PathTile.GetEndPoint(currentNode.Direction).ToVector2());
+            currentNode = GetNextNode(currentNode);
         }
 
-        //while(currentTile != startTile || currentDirection != startDirection || result.Count == 1) {
-        //    currentTile = FindLastTileInLine(currentTile, currentDirection);
-        //    result.Add(currentTile.GetEndPoint(currentDirection).ToVector2());
-        //    currentDirection = GetNextDirection(currentTile, currentDirection);
-        //}
-        
+        Debug.Log(result.Count);
+
+        foreach (var point in result) {
+            Debug.Log(point);
+
+        }
         return result;
     }
 
+    public bool CheckTerminationCondition(MapSegmentTraverseResult lastResult, MapSegmentTraverseResult startNode, List<Vector2> points)
+    {
+        // These null-guards works against dveelopment error and step-by-step implementation of this algorithm
+        if(lastResult == null || startNode == null) {
+            return true;
+        }
 
-    public MapSegmentPathTile FindStartTile(List<MapSegmentPathTile> tiles)
+        if(lastResult.PathTile ==  null || startNode.PathTile == null){
+            return true;
+        }
+
+        if(lastResult.PathTile == startNode.PathTile && lastResult.Direction == startNode.Direction) {
+            // Even when no loops of the while-loop has been executed, a single, startnode will be present in this list.
+            if(points.Count > 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public MapSegmentPathTile FindStartTile(List<MapSegmentPathTile> tiles, MapSegmentDirection direction)
     {
         foreach (var tile in tiles) {
-            if (tile.IsNeighbourFree(MapSegmentDirection.Up)) {
+            if (tile.IsNeighbourFree(direction)) {
                 return tile;
             }
         }
@@ -126,15 +148,41 @@ public class MapSegmentPathing
         return null;
     }
 
-    public MapSegmentTraverseResult GetNextTile(MapSegmentTraverseResult lastTile)
+    public MapSegmentTraverseResult GetNextNode(MapSegmentTraverseResult lastStep)
     {
-        MapSegmentTraverseResult result = null;
-
-        if (lastTile.PathTile.IsNeighbourFree(lastTile.Direction)) {
-            result = new MapSegmentTraverseResult { PathTile = lastTile.PathTile.GetNeighbour(lastTile.Direction), Direction = lastTile.Direction };
+        if(lastStep.Direction == MapSegmentDirection.Up) {
+            var nextTile = lastStep.PathTile.NeighbourRight;
+            if (MapSegmentPathTile.IsFree(nextTile)) {
+                return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Right };
+            }else {
+                return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
+            }
+        }else if(lastStep.Direction == MapSegmentDirection.Right) {
+            var nextTile = lastStep.PathTile.NeighbourDown;
+            if (MapSegmentPathTile.IsFree(nextTile)) {
+                return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Down };
+            }else {
+                return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
+            }
+        }else if(lastStep.Direction == MapSegmentDirection.Down) {
+            var nextTile = lastStep.PathTile.NeighbourLeft;
+            if (MapSegmentPathTile.IsFree(nextTile)) {
+                return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Left };
+            }else {
+                return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
+            }
+        } else if (lastStep.Direction == MapSegmentDirection.Left) {
+            var nextTile = lastStep.PathTile.NeighbourUp;
+            if (MapSegmentPathTile.IsFree(nextTile)) {
+                return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Up };
+            }else {
+                return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
+            }
         }
 
-        return result;
+        // Theorically impossible but catches and handles errors
+        // TODO: Implement exceptions and exception handling for this kind of errors
+        return null;
     }
     
     public List<MapSegmentPathTile> DepthFirstSearch(MapSegmentPathTile startTile)
