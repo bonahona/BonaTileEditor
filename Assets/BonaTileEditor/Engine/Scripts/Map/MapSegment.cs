@@ -10,7 +10,7 @@ public class MapSegment : MonoBehaviour {
     public int Width;
     public int Height;
 
-    public Vector2 GridTileSize = new Vector2(1, 1);
+    public Vector2 GridTileSize = Vector2.one;
 
     // Work details, so the get stored even when an object is briefly deselected and then reselected
     public MapSegmentLayer CurrentLayer { get; set; }

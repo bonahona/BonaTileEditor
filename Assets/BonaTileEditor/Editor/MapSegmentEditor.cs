@@ -108,6 +108,9 @@ public class MapSegmentEditor : Editor
 
         TileSet.AddMapSegment(MapSegment);
         ApplyTilsetChanges();
+
+        // The colliders will be out of scale by this and must be adapted
+        UpdateCollider();
         EditorUtility.SetDirty(target);
     }
 
@@ -820,11 +823,27 @@ public class MapSegmentEditor : Editor
 
             polygonCollider.pathCount = edgesGroups.Count;
             for (int i = 0; i < edgesGroups.Count; i++) {
-                polygonCollider.SetPath(i, edgesGroups[i].ToArray());
+                polygonCollider.SetPath(i, ScaleColliderPoints(edgesGroups[i].ToArray(), MapSegment.GridTileSize));
             }
 
         }catch(System.AccessViolationException) {
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");
         }
+    }
+
+    public Vector2[] ScaleColliderPoints(Vector2[] points, Vector2 scale)
+    {
+        var result = new Vector2[points.Length];
+
+        for (int i = 0; i < points.Length; i++) {
+            result[i] = GetScaledVector(points[i], scale);
+        }
+
+        return result;
+    }
+
+    public Vector2 GetScaledVector(Vector2 vector, Vector2 scale)
+    {
+        return new Vector2(vector.x * scale.x, vector.y * scale.y);
     }
 }
