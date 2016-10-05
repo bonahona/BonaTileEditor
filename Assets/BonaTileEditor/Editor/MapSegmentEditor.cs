@@ -810,9 +810,18 @@ public class MapSegmentEditor : Editor
             var resultPathing = MapSegment.GetMapSegmentPathing();
             resultPathing.UpdateInternalBoundries();
 
-            var edges = resultPathing.GetPoints();
-            var edgeCollider = MapSegment.GetComponent<EdgeCollider2D>();
-            edgeCollider.points = edges.ToArray();
+            var edgesGroups = resultPathing.GetColliderPoints();
+            var polygonCollider = MapSegment.GetComponent<PolygonCollider2D>();
+
+            if(polygonCollider == null) {
+                Debug.LogError(string.Format("Error: Map segment {0} is missing a Polygon collider", MapSegment.name));
+                return;
+            }
+
+            polygonCollider.pathCount = edgesGroups.Count;
+            for (int i = 0; i < edgesGroups.Count; i++) {
+                polygonCollider.SetPath(i, edgesGroups[i].ToArray());
+            }
 
         }catch(System.AccessViolationException) {
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");

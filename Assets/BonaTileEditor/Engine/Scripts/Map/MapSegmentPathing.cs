@@ -58,16 +58,13 @@ public class MapSegmentPathing
         }
     }
 
-    public List<Vector2> GetPoints()
+    public List<List<Vector2>> GetColliderPoints()
     {
-        var result = new List<Vector2>();
+        var result = new List<List<Vector2>>();
 
         var tileGroups = GetGroups();
-
         foreach (var group in tileGroups) {
-            var points = GetGroupPoints(group);
-            result = points;
-            return result;
+            result.Add(GetGroupPoints(group));
         }
 
         return result;
@@ -103,13 +100,8 @@ public class MapSegmentPathing
         var point = startNode.PathTile.GetStartPoint(MapSegmentDirection.Up).ToVector2();
         result.Add(point);
 
-        Debug.Log(currentNode);
-        Debug.Log(point);
-
         while (!CheckTerminationCondition(currentNode, startNode, result)) {
-            Debug.Log(currentNode);
             point = currentNode.PathTile.GetEndPoint(currentNode.Direction).ToVector2();
-            Debug.Log(point);
             result.Add(point);
             currentNode = GetNextNode(currentNode);
         }
