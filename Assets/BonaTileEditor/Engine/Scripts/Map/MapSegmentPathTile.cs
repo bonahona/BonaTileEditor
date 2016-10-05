@@ -6,14 +6,14 @@ public class MapSegmentPathTile
 {
     public const bool NULL_TILE_IS_WALKABLE = true;                 // Default value for how any non-existing nodes should be treated
 
-    public static readonly Point UP_START_OFFSET = new Point(0, 1);
-    public static readonly Point UP_END_OFFSET = new Point(1, 1);
-    public static readonly Point RIGHT_START_OFFSET = new Point(1, 1);
-    public static readonly Point RIGHT_END_OFFSET = new Point(1, 0);
-    public static readonly Point DOWN_START_OFFSET = new Point(1, 0);
-    public static readonly Point DOWN_END_OFFSET = new Point(0, 0);
-    public static readonly Point LEFT_START_OFFSET = new Point(0, 0);
-    public static readonly Point LEFT_END_OFFSET = new Point(0, 1);
+    public static readonly Point UP_START_OFFSET = new Point(0, 0);
+    public static readonly Point UP_END_OFFSET = new Point(1, 0);
+    public static readonly Point RIGHT_START_OFFSET = new Point(1, 0);
+    public static readonly Point RIGHT_END_OFFSET = new Point(1, 1);
+    public static readonly Point DOWN_START_OFFSET = new Point(1, 1);
+    public static readonly Point DOWN_END_OFFSET = new Point(0, 1);
+    public static readonly Point LEFT_START_OFFSET = new Point(0, 1);
+    public static readonly Point LEFT_END_OFFSET = new Point(0, 0);
 
     public static bool IsFree(MapSegmentPathTile tile)
     {
