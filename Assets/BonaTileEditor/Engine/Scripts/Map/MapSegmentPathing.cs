@@ -65,6 +65,8 @@ public class MapSegmentPathing
         var unWalkableTileGroups = GetGroups(false);
         var walkableTilegroups = GetGroups(true);
 
+        var expectedCollidergroupCount = unWalkableTileGroups.Count + walkableTilegroups.Count;
+
         foreach (var group in unWalkableTileGroups) {
             var groupPoints = GetGroupPointsFixed(group, walkableTilegroups);
             var minimizedGroupPoints = GetMinimizedColliderPointList(groupPoints);
@@ -78,6 +80,10 @@ public class MapSegmentPathing
                 var minimizedGroupPoints = GetMinimizedColliderPointList(groupPoints);
                 result.Add(minimizedGroupPoints);
             }
+        }
+
+        if(expectedCollidergroupCount > result.Count) {
+            Debug.LogWarning(string.Format("Wrong amount of colliders generated Expected {0}, actual is {1}.", expectedCollidergroupCount, result.Count));
         }
 
         return result;
@@ -142,7 +148,7 @@ public class MapSegmentPathing
         var startDirection = MapSegmentDirection.Up;
         var startTile = FindStartTile(tiles, MapSegmentDirection.Up);
 
-        return GetGroupPoints(tiles, walkableGroups, startTile, startDirection);
+        return GetGroupPoints(tiles, startTile, startDirection);
     }
 
     public List<Vector2> GetGroupPointsRandom(List<HashSet<MapSegmentPathTile>> tileGroups, HashSet<MapSegmentPathTile> currentWalkableGroup, List<HashSet<MapSegmentPathTile>> walkableGroups)
@@ -157,7 +163,7 @@ public class MapSegmentPathing
         var startTile = startPathTile.PathTile;
         var tiles = GetOwningTileGroup(startTile, tileGroups);
 
-        return GetGroupPoints(tiles, walkableGroups, startTile, startDirection);
+        return GetGroupPoints(tiles, startTile, startDirection);
     }
 
     public MapSegmentTraverseResult FindMatchingStartTile(List<HashSet<MapSegmentPathTile>> tileGroups, HashSet<MapSegmentPathTile> currentWalkableGroup, List<HashSet<MapSegmentPathTile>> walkableGroups)
@@ -190,7 +196,7 @@ public class MapSegmentPathing
         return null;
     }
 
-    public List<Vector2> GetGroupPoints(ICollection<MapSegmentPathTile> tiles, List<HashSet<MapSegmentPathTile>> walkableGroups, MapSegmentPathTile startTile, MapSegmentDirection startDirection)
+    public List<Vector2> GetGroupPoints(ICollection<MapSegmentPathTile> tiles, MapSegmentPathTile startTile, MapSegmentDirection startDirection)
     {
         var result = new List<Vector2>();
         var startNode = new MapSegmentTraverseResult { PathTile = startTile, Direction = startDirection };
@@ -202,7 +208,7 @@ public class MapSegmentPathing
         while (!CheckTerminationCondition(currentNode, startNode, result)) {
             point = currentNode.PathTile.GetEndPoint(currentNode.Direction).ToVector2();
             result.Add(point);
-            currentNode = GetNextNode(currentNode, walkableGroups);
+            currentNode = GetNextNode(currentNode);
         }
 
         return result;
@@ -247,16 +253,14 @@ public class MapSegmentPathing
         return null;
     }
 
-    public MapSegmentTraverseResult GetNextNode(MapSegmentTraverseResult lastStep, List<HashSet<MapSegmentPathTile>> walkableGroups)
+    public MapSegmentTraverseResult GetNextNode(MapSegmentTraverseResult lastStep)
     {
         if(lastStep.Direction == MapSegmentDirection.Up) {
             var nextTile = lastStep.PathTile.NeighbourRight;
             if (MapSegmentPathTile.IsFree(nextTile)) {
-                CheckWalkableGroups(nextTile, walkableGroups);
                 return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Right };
             }else {
                 if (MapSegmentPathTile.IsFree(nextTile.NeighbourUp)) {
-                    CheckWalkableGroups(nextTile.NeighbourUp, walkableGroups);
                     return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
                 }else {
                     return new MapSegmentTraverseResult { PathTile = nextTile.NeighbourUp, Direction = MapSegmentDirection.Left };
@@ -265,11 +269,9 @@ public class MapSegmentPathing
         }else if(lastStep.Direction == MapSegmentDirection.Right) {
             var nextTile = lastStep.PathTile.NeighbourDown;
             if (MapSegmentPathTile.IsFree(nextTile)) {
-                CheckWalkableGroups(nextTile, walkableGroups);
                 return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Down };
             }else {
                 if (MapSegmentPathTile.IsFree(nextTile.NeighbourRight)) {
-                    CheckWalkableGroups(nextTile.NeighbourRight, walkableGroups);
                     return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
                 } else {
                     return new MapSegmentTraverseResult { PathTile = nextTile.NeighbourRight, Direction = MapSegmentDirection.Up };
@@ -278,11 +280,9 @@ public class MapSegmentPathing
         }else if(lastStep.Direction == MapSegmentDirection.Down) {
             var nextTile = lastStep.PathTile.NeighbourLeft;
             if (MapSegmentPathTile.IsFree(nextTile)) {
-                CheckWalkableGroups(nextTile, walkableGroups);
                 return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Left };
             }else {
                 if (MapSegmentPathTile.IsFree(nextTile.NeighbourDown)) {
-                    CheckWalkableGroups(nextTile.NeighbourDown, walkableGroups);
                     return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
                 }else {
                     return new MapSegmentTraverseResult { PathTile = nextTile.NeighbourDown, Direction = MapSegmentDirection.Right };
@@ -291,11 +291,9 @@ public class MapSegmentPathing
         } else if (lastStep.Direction == MapSegmentDirection.Left) {
             var nextTile = lastStep.PathTile.NeighbourUp;
             if (MapSegmentPathTile.IsFree(nextTile)) {
-                CheckWalkableGroups(nextTile, walkableGroups);
                 return new MapSegmentTraverseResult { PathTile = lastStep.PathTile, Direction = MapSegmentDirection.Up };
             }else {
                 if (MapSegmentPathTile.IsFree(nextTile.NeighbourLeft)) {
-                    CheckWalkableGroups(nextTile.NeighbourLeft, walkableGroups);
                     return new MapSegmentTraverseResult { PathTile = nextTile, Direction = lastStep.Direction };
                 }else {
                     return new MapSegmentTraverseResult { PathTile = nextTile.NeighbourLeft, Direction = MapSegmentDirection.Down };
