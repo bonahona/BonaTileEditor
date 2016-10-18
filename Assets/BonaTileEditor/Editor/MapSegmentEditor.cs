@@ -813,20 +813,37 @@ public class MapSegmentEditor : Editor
             var resultPathing = MapSegment.GetMapSegmentPathing();
             resultPathing.UpdateInternalBoundries();
 
+            var edgeColliders = MapSegment.GetComponentsInChildren<EdgeCollider2D>();
+            foreach(var edgeCollider in edgeColliders) {
+                GameObject.DestroyImmediate(edgeCollider.gameObject);
+            }
+
             var edgesGroups = resultPathing.GetColliderPoints();
-            var polygonCollider = MapSegment.GetComponent<PolygonCollider2D>();
 
-            if(polygonCollider == null) {
-                Debug.LogError(string.Format("Error: Map segment {0} is missing a Polygon collider", MapSegment.name));
-                return;
+            foreach(var edgeGroup in edgesGroups) {
+                var edgeGameObject = new GameObject("Collider2D");
+                var edgeCollider = edgeGameObject.AddComponent<EdgeCollider2D>();
+                edgeCollider.points = edgeGroup.ToArray();
+
+                edgeGameObject.transform.parent = MapSegment.transform;
+                edgeGameObject.transform.localPosition = Vector3.zero;
+                edgeGameObject.transform.localRotation = Quaternion.identity;
+                edgeGameObject.transform.localScale = Vector3.one;
             }
 
-            polygonCollider.pathCount = edgesGroups.Count;
-            for (int i = 0; i < edgesGroups.Count; i++) {
-                polygonCollider.SetPath(i, ScaleColliderPoints(edgesGroups[i].ToArray(), MapSegment.GridTileSize));
-            }
+            //var polygonCollider = MapSegment.GetComponent<PolygonCollider2D>();
 
-        }catch(System.AccessViolationException) {
+            //if(polygonCollider == null) {
+            //    Debug.LogError(string.Format("Error: Map segment {0} is missing a Polygon collider", MapSegment.name));
+            //    return;
+            //}
+
+            //polygonCollider.pathCount = edgesGroups.Count;
+            //for (int i = 0; i < edgesGroups.Count; i++) {
+            //    polygonCollider.SetPath(i, ScaleColliderPoints(edgesGroups[i].ToArray(), MapSegment.GridTileSize));
+            //}
+
+        }catch(System.Exception) {
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");
         }
     }

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-[RequireComponent(typeof(PolygonCollider2D))]
 public class MapSegment : MonoBehaviour {
 
     public TileSet TileSet;
