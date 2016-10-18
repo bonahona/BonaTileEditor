@@ -822,6 +822,8 @@ public class MapSegmentEditor : Editor
 
             foreach(var edgeGroup in edgesGroups) {
                 var edgeGameObject = new GameObject("Collider2D");
+                edgeGameObject.hideFlags = HideFlags.HideInHierarchy;
+
                 var edgeCollider = edgeGameObject.AddComponent<EdgeCollider2D>();
                 edgeCollider.points = edgeGroup.ToArray();
 
@@ -830,18 +832,6 @@ public class MapSegmentEditor : Editor
                 edgeGameObject.transform.localRotation = Quaternion.identity;
                 edgeGameObject.transform.localScale = Vector3.one;
             }
-
-            //var polygonCollider = MapSegment.GetComponent<PolygonCollider2D>();
-
-            //if(polygonCollider == null) {
-            //    Debug.LogError(string.Format("Error: Map segment {0} is missing a Polygon collider", MapSegment.name));
-            //    return;
-            //}
-
-            //polygonCollider.pathCount = edgesGroups.Count;
-            //for (int i = 0; i < edgesGroups.Count; i++) {
-            //    polygonCollider.SetPath(i, ScaleColliderPoints(edgesGroups[i].ToArray(), MapSegment.GridTileSize));
-            //}
 
         }catch(System.Exception) {
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");

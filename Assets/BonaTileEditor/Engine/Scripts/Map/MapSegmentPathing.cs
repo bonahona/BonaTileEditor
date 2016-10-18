@@ -119,6 +119,7 @@ public class MapSegmentPathing
         }
 
         result.Add(vertices.Last());
+        result.Add(result.First());
 
         return result;
     }
@@ -202,7 +203,7 @@ public class MapSegmentPathing
         var startNode = new MapSegmentTraverseResult { PathTile = startTile, Direction = startDirection };
 
         var currentNode = startNode;
-        var point = startNode.PathTile.GetStartPoint(MapSegmentDirection.Up).ToVector2();
+        var point = startNode.PathTile.GetStartPoint(startDirection).ToVector2();
         result.Add(point);
 
         while (!CheckTerminationCondition(currentNode, startNode, result)) {
