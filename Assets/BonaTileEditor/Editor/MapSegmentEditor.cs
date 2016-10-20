@@ -757,10 +757,7 @@ public class MapSegmentEditor : Editor
             if (BlockStart != null) {
                 IntVector2 endBlock = new IntVector2(tilePosition);
 
-                for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
-                    for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
-                    }
-                }
+                TileSetPreview.SetPreviewZoneBlock(MapSegment.CurrentTileSelection, BlockStart.ToPoint(), endBlock.ToPoint());
             }
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {

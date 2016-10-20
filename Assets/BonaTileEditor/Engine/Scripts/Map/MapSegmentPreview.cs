@@ -49,9 +49,29 @@ public class MapSegmentPreview : MonoBehaviour
         UpdateMesh(vertices, uvs, tris, normals);
     }
 
-    public void SetPreviewZoneBlock(MapSegmentSelection selection, Point startPoint, Point endPoint)
+    public void SetPreviewZoneBlock(MapSegmentPaletteSelection selection, Point startPoint, Point endPoint)
     {
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+        List<int> tris = new List<int>();
+        List<Vector3> normals = new List<Vector3>();
+        int index = 0;
 
+        var scaledOffset = GetScaledOffset(startPoint, MapSegment.GridTileSize);
+        for (int y = startPoint.Y; y <= endPoint.Y; y++) {
+            for (int x = startPoint.X; x <= endPoint.X; x++) {
+                if (MapSegment.ValidateBounds(x, y, Point.Zero)) {
+                    AddVertices(scaledOffset, x, -y, vertices, MapSegment.GridTileSize);
+                    AddUvs(selection.GetSingleSelecttion(), uvs, MapSegment.CurrentLayer.TileSetLayer);
+                    index = AddTris(index, tris);
+                    AddNormals(normals);
+                }
+            }
+        }
+
+        Debug.Log(vertices.Count);
+
+        UpdateMesh(vertices, uvs, tris, normals);
     }
 
     protected void UpdateMesh(List<Vector3> vertices, List<Vector2> uvs, List<int> tris, List<Vector3> normals)
