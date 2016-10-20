@@ -23,7 +23,7 @@ public class MapSegmentPreview : MonoBehaviour
         MeshFilter = GetComponent<MeshFilter>();
     }
 
-    public void SetPreviewZone(MapSegmentPaletteSelection selection, Point startPoint)
+    public void SetPreviewZoneSingle(MapSegmentPaletteSelection selection, Point startPoint)
     {
         List<Vector3> vertices = new List<Vector3>();
         List<Vector2> uvs = new List<Vector2>();
@@ -31,22 +31,35 @@ public class MapSegmentPreview : MonoBehaviour
         List<Vector3> normals = new List<Vector3>();
         int index = 0;
 
-        var meshFilter = gameObject.GetComponent<MeshFilter>();
-        var meshRenderer = gameObject.GetComponent<MeshRenderer>();
-        var mesh = new Mesh();
-
         var scaledOffset = GetScaledOffset(startPoint, MapSegment.GridTileSize);
         for (int y = 0; y < selection.Height; y++) {
             for (int x = 0; x < selection.Width; x++) {
                 if (MapSegment.ValidateBounds(x, y, startPoint)) {
+
+                    // Adjust the y value as its draw in the opposite direction (Start in the top left corner)
+                    var adjustedY = (selection.Height - y) - 1;
                     AddVertices(scaledOffset, x, -y, vertices, MapSegment.GridTileSize);
-                    AddUvs(selection.GetTileType(x, y), uvs, MapSegment.CurrentLayer.TileSetLayer);
+                    AddUvs(selection.GetTileType(x, adjustedY), uvs, MapSegment.CurrentLayer.TileSetLayer);
                     index = AddTris(index, tris);
                     AddNormals(normals);
                 }
             }
         }
-        
+
+        UpdateMesh(vertices, uvs, tris, normals);
+    }
+
+    public void SetPreviewZoneBlock(MapSegmentSelection selection, Point startPoint, Point endPoint)
+    {
+
+    }
+
+    protected void UpdateMesh(List<Vector3> vertices, List<Vector2> uvs, List<int> tris, List<Vector3> normals)
+    {
+        var meshFilter = gameObject.GetComponent<MeshFilter>();
+        var meshRenderer = gameObject.GetComponent<MeshRenderer>();
+        var mesh = new Mesh();
+
         mesh.vertices = vertices.ToArray();
         mesh.uv = uvs.ToArray();
         mesh.triangles = tris.ToArray();

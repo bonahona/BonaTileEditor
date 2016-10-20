@@ -738,7 +738,7 @@ public class MapSegmentEditor : Editor
                 EditorUtility.SetDirty(mapSegment.CurrentLayer);
             }else {
                 // Show a preview of the tile that would be painted
-                TileSetPreview.SetPreviewZone(mapSegment.CurrentTileSelection, currentPoint);            
+                TileSetPreview.SetPreviewZoneSingle(mapSegment.CurrentTileSelection, currentPoint);            
             }
         }
     }
@@ -752,6 +752,16 @@ public class MapSegmentEditor : Editor
 
             // Find the cordinates of the selected tile
             var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
+
+            // Use this to create the preview
+            if (BlockStart != null) {
+                IntVector2 endBlock = new IntVector2(tilePosition);
+
+                for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
+                    for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
+                    }
+                }
+            }
 
             if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
                 BlockStart = new IntVector2(tilePosition);
