@@ -52,6 +52,8 @@ public class MapSegmentEditor : Editor
     public bool MouseRightClicked { get; set; }
     public IntVector2 BlockStart { get; set; }
 
+    public MapSegmentPreview TileSetPreview { get; set; }
+
     #endregion
 
     // Loaded resources
@@ -171,8 +173,12 @@ public class MapSegmentEditor : Editor
 
     public override void OnInspectorGUI()
     {
-        if (!MapSegment.HasPreviewObject()) {
-            MapSegment.CreatePreviewObject();
+        if (TileSetPreview == null) {
+            if (!MapSegment.HasPreviewObject()) {
+                TileSetPreview = MapSegment.CreatePreviewObject();
+            } else {
+                TileSetPreview = MapSegment.GetComponentInChildren<MapSegmentPreview>();
+             }
         }
 
         SetDefaults();
@@ -721,13 +727,19 @@ public class MapSegmentEditor : Editor
             MouseLeftClicked = false;
         }
 
-        if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
-
+        if (!AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
             var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
-            mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection);
+            var currentPoint = new Point(tilePosition.X, tilePosition.Y);
+            if (MouseLeftClicked) {
+                // Paint the tile
+                mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection);
 
-            // Set dirty so the editor serializes it
-            EditorUtility.SetDirty(mapSegment.CurrentLayer);
+                // Set dirty so the editor serializes it
+                EditorUtility.SetDirty(mapSegment.CurrentLayer);
+            }else {
+                // Show a preview of the tile that would be painted
+                TileSetPreview.SetPreviewZone(mapSegment.CurrentTileSelection, currentPoint);            
+            }
         }
     }
 
@@ -833,6 +845,7 @@ public class MapSegmentEditor : Editor
                 edgeGameObject.transform.localScale = Vector3.one;
             }
 
+            Debug.Log(string.Format("MapSegment {0}'s colliders has been updated", MapSegment.name));
         }catch(System.Exception) {
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");
         }
