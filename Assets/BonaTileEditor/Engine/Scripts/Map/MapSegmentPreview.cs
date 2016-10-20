@@ -38,10 +38,12 @@ public class MapSegmentPreview : MonoBehaviour
         var scaledOffset = GetScaledOffset(startPoint, MapSegment.GridTileSize);
         for (int y = 0; y < selection.Height; y++) {
             for (int x = 0; x < selection.Width; x++) {
-                AddVertices(scaledOffset, x, -y, vertices, MapSegment.GridTileSize);
-                AddUvs(0, uvs);
-                index = AddTris(index, tris);
-                AddNormals(normals);
+                if (MapSegment.ValidateBounds(x, y, startPoint)) {
+                    AddVertices(scaledOffset, x, -y, vertices, MapSegment.GridTileSize);
+                    AddUvs(selection.GetTileType(x, y), uvs, MapSegment.CurrentLayer.TileSetLayer);
+                    index = AddTris(index, tris);
+                    AddNormals(normals);
+                }
             }
         }
         
@@ -82,16 +84,11 @@ public class MapSegmentPreview : MonoBehaviour
         return result;
     }
 
-    protected void AddUvs(int tile, List<Vector2> uvs)
+    protected void AddUvs(int tile, List<Vector2> uvs, TileSetLayer layer)
     {
-        //for (int i = 0; i < 4; i++) {
-        //    uvs.Add(Vector2.zero);
-        //}
-
-        uvs.Add(Vector2.zero);
-        uvs.Add(new Vector2(1, 0));
-        uvs.Add(new Vector2(0, 1));
-        uvs.Add(new Vector2(1, 1));
+        foreach(var uvCord in layer.Tiles[tile].UvCords) {
+            uvs.Add(uvCord);
+        }
     }
 
     protected int AddTris(int startIndex, List<int> tris)
