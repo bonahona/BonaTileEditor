@@ -61,20 +61,14 @@ public class MapSegmentPreview : MonoBehaviour
         var endX = Mathf.Max(startPoint.X, endPoint.X);
         var startY = Mathf.Min(startPoint.Y, endPoint.Y);
         var endY = Mathf.Max(startPoint.Y, endPoint.Y);
-        var deltaX = endX - startX;
-        var deltaY = endY - startY;
 
-        Debug.Log(string.Format("{0}; {1}", new Point(startX, startY), new Point(endX, endY)));
-
-        var scaledOffset = GetScaledOffset(startPoint, MapSegment.GridTileSize);
-        for (int y = 0; y <= deltaY; y ++) {
-            for (int x = 0; x <= deltaX; x ++) {
-                if (MapSegment.ValidateBounds(x, y, startPoint)) {
-                    AddVertices(scaledOffset, x, -y, vertices, MapSegment.GridTileSize);
-                    AddUvs(selection.GetSingleSelecttion(), uvs, MapSegment.CurrentLayer.TileSetLayer);
-                    index = AddTris(index, tris);
-                    AddNormals(normals);
-                }
+        var scaledOffset = Vector3.zero;
+        for (int y = startY; y <= endY; y ++) {
+            for (int x = startX; x <= endX; x ++) {
+                AddVertices(scaledOffset, x, y, vertices, MapSegment.GridTileSize);
+                AddUvs(selection.GetSingleSelecttion(), uvs, MapSegment.CurrentLayer.TileSetLayer);
+                index = AddTris(index, tris);
+                AddNormals(normals);
             }
         }
 
