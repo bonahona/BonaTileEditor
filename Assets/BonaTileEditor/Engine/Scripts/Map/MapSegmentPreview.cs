@@ -57,22 +57,24 @@ public class MapSegmentPreview : MonoBehaviour
         List<Vector3> normals = new List<Vector3>();
         int index = 0;
 
-        var startX = Mathf.Min(startPoint.X, endPoint.X);
-        var endX = Mathf.Max(startPoint.X, endPoint.X);
-        var startY = Mathf.Min(startPoint.Y, endPoint.Y);
-        var endY = Mathf.Max(startPoint.Y, endPoint.Y);
+        var start = new Point(Mathf.Min(startPoint.X, endPoint.X), Mathf.Min(startPoint.Y, endPoint.Y));
+        var end = new Point(Mathf.Max(startPoint.X, endPoint.X), Mathf.Max(startPoint.Y, endPoint.Y));
 
+        // Some of the points are not on the mapsegment and this will look really weird if its allowed
+        if (!MapSegment.ValidateBounds(start) || !MapSegment.ValidateBounds(end)) {
+            return;
+        }
+
+        Debug.Log(string.Format("{0}; {1}", start, end));
         var scaledOffset = Vector3.zero;
-        for (int y = startY; y <= endY; y ++) {
-            for (int x = startX; x <= endX; x ++) {
+        for (int y = start.Y; y <= end.Y; y ++) {
+            for (int x = start.X; x <= end.X; x ++) {
                 AddVertices(scaledOffset, x, y, vertices, MapSegment.GridTileSize);
                 AddUvs(selection.GetSingleSelecttion(), uvs, MapSegment.CurrentLayer.TileSetLayer);
                 index = AddTris(index, tris);
                 AddNormals(normals);
             }
         }
-
-        Debug.Log(vertices.Count);
 
         UpdateMesh(vertices, uvs, tris, normals);
     }

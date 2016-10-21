@@ -58,6 +58,24 @@ public class MapSegment : MonoBehaviour {
         return result;
     }
 
+    public bool ValidateBounds(int offsetX, int offsetY)
+    {
+        return ValidateBounds(new Point(offsetX, offsetY));
+    }
+
+    public bool ValidateBounds(Point point)
+    {
+        if (point.X < 0 || point.X >= Width) {
+            return false;
+        }
+
+        if (point.Y < 0 || point.Y >= Height) {
+            return false;
+        }
+
+        return true;
+    }
+
     public bool ValidateBounds(int offsetX, int offsetY, Point startPoint)
     {
         var currentX = startPoint.X + offsetX;
