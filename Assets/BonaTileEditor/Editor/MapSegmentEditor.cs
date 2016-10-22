@@ -225,13 +225,12 @@ public class MapSegmentEditor : Editor
 
     protected Texture2D[] GetBrushTextures()
     {
-        var result = new Texture2D[5];
+        var result = new Texture2D[4];
 
         result[0] = Resources.Load("eyedropper") as Texture2D;
         result[1] = Resources.Load("pencil") as Texture2D;
         result[2] = Resources.Load("paint-roller") as Texture2D; 
         result[3] = Resources.Load("paint-can") as Texture2D;
-        result[4] = Resources.Load("eyedropper") as Texture2D;
 
         return result;
     }
