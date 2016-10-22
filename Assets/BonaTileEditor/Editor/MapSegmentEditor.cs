@@ -615,12 +615,18 @@ public class MapSegmentEditor : Editor
             mapSegment.CurrentTileSelection.Clear();
         }
 
-        if (mapSegment.CurrentBrush == MapSegmentBrushType.Single) {
-            HandleSingleBrush(mapSegment);
-        } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Block) {
-            HandleBlockBrush(mapSegment);
-        } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Fill) {
-            HandleFillBrush(mapSegment);
+        try {
+            if (mapSegment.CurrentBrush == MapSegmentBrushType.Single) {
+                HandleSingleBrush(mapSegment);
+            } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Block) {
+                HandleBlockBrush(mapSegment);
+            } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Fill) {
+                HandleFillBrush(mapSegment);
+            } else {
+                TileSetPreview.Clear();
+            }
+        } catch (System.Exception) {
+            // Sometmes, for a single frame the preview object is not set. This is the easiet way to manage it
         }
     }
 
@@ -793,12 +799,18 @@ public class MapSegmentEditor : Editor
             MouseLeftClicked = false;
         }
 
+        var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
+        if (!MapSegment.ValidateBounds(tilePosition.ToPoint())) {
+            TileSetPreview.Clear();
+            return;
+        }
+
+        var tileType = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
+        var adjecentTiles = mapSegment.FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType);
+
+        TileSetPreview.SetPreviewZoneBucket(MapSegment.CurrentTileSelection, adjecentTiles);
+
         if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
-
-            var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
-            var tileType = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
-            var adjecentTiles = mapSegment.FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType);
-
             foreach (var adjecentTile in adjecentTiles) {
                 mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection);
             }

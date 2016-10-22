@@ -50,6 +50,7 @@ public class MapSegment : MonoBehaviour {
         previewObject.transform.localPosition = new Vector3(0, 0, -4);
         previewObject.transform.localRotation = Quaternion.identity;
         previewObject.transform.localScale = Vector3.one;
+        previewObject.hideFlags = HideFlags.HideInHierarchy;
 
         var result = previewObject.AddComponent<MapSegmentPreview>();
         result.Init();

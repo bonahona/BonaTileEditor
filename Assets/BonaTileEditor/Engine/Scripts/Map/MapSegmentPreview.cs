@@ -6,6 +6,7 @@ using System.Collections.Generic;
 [RequireComponent(typeof(MeshRenderer))]
 public class MapSegmentPreview : MonoBehaviour
 {
+    public static readonly Color TINT_COLOR = new Color { r = 1, g = 1, b = 1, a = 0.5f };
     public MapSegment MapSegment;
     public MeshFilter MeshFilter;
 
@@ -21,6 +22,17 @@ public class MapSegmentPreview : MonoBehaviour
     public void Init()
     {
         MeshFilter = GetComponent<MeshFilter>();
+    }
+
+    public void Clear()
+    {
+        // Purposefully create empty arrays to populate the mesh with
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+        List<int> tris = new List<int>();
+        List<Vector3> normals = new List<Vector3>();
+
+        UpdateMesh(vertices, uvs, tris, normals);
     }
 
     public void SetPreviewZoneSingle(MapSegmentPaletteSelection selection, Point startPoint)
@@ -64,8 +76,7 @@ public class MapSegmentPreview : MonoBehaviour
         if (!MapSegment.ValidateBounds(start) || !MapSegment.ValidateBounds(end)) {
             return;
         }
-
-        Debug.Log(string.Format("{0}; {1}", start, end));
+        
         var scaledOffset = Vector3.zero;
         for (int y = start.Y; y <= end.Y; y ++) {
             for (int x = start.X; x <= end.X; x ++) {
@@ -74,6 +85,27 @@ public class MapSegmentPreview : MonoBehaviour
                 index = AddTris(index, tris);
                 AddNormals(normals);
             }
+        }
+
+        UpdateMesh(vertices, uvs, tris, normals);
+    }
+
+    public void SetPreviewZoneBucket(MapSegmentPaletteSelection selection, List<Point> tilePoints)
+    {
+        var tileType = selection.GetSingleSelecttion();
+
+        List<Vector3> vertices = new List<Vector3>();
+        List<Vector2> uvs = new List<Vector2>();
+        List<int> tris = new List<int>();
+        List<Vector3> normals = new List<Vector3>();
+        int index = 0;
+
+        var scaledOffset = Vector3.zero;
+        foreach (var tilePoint in tilePoints) {
+            AddVertices(scaledOffset, tilePoint.X, tilePoint.Y, vertices, MapSegment.GridTileSize);
+            AddUvs(selection.GetSingleSelecttion(), uvs, MapSegment.CurrentLayer.TileSetLayer);
+            index = AddTris(index, tris);
+            AddNormals(normals);
         }
 
         UpdateMesh(vertices, uvs, tris, normals);
@@ -92,7 +124,8 @@ public class MapSegmentPreview : MonoBehaviour
 
 
         if (meshRenderer.sharedMaterial == null) {
-            meshFilter.GetComponent<Renderer>().sharedMaterial = new Material(Shader.Find("Sprites/Default"));
+            var material = Resources.Load("PreviewMaterial") as Material;
+            meshFilter.GetComponent<Renderer>().sharedMaterial = material;
         }
 
         meshRenderer.sharedMaterial.mainTexture = MapSegment.CurrentLayer.TileSetLayer.Texture;
