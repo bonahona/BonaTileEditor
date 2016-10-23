@@ -6,6 +6,7 @@ using System.Linq;
 [System.Serializable]
 public class MapSegmentPaletteSelection
 {
+    public bool IsCustom { get; set; }           // If the selection is from the inspector window, its not custom. If its from the already painted tiles on a segment it is
     public int Width { get; set; }
     public int Height { get; set; }
 

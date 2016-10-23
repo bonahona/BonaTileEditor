@@ -6,7 +6,6 @@ using System.Collections.Generic;
 [RequireComponent(typeof(MeshRenderer))]
 public class MapSegmentPreview : MonoBehaviour
 {
-    public static readonly Color TINT_COLOR = new Color { r = 1, g = 1, b = 1, a = 0.5f };
     public MapSegment MapSegment;
     public MeshFilter MeshFilter;
 
@@ -103,7 +102,7 @@ public class MapSegmentPreview : MonoBehaviour
         var scaledOffset = Vector3.zero;
         foreach (var tilePoint in tilePoints) {
             AddVertices(scaledOffset, tilePoint.X, tilePoint.Y, vertices, MapSegment.GridTileSize);
-            AddUvs(selection.GetSingleSelecttion(), uvs, MapSegment.CurrentLayer.TileSetLayer);
+            AddUvs(tileType, uvs, MapSegment.CurrentLayer.TileSetLayer);
             index = AddTris(index, tris);
             AddNormals(normals);
         }
@@ -124,7 +123,7 @@ public class MapSegmentPreview : MonoBehaviour
 
 
         if (meshRenderer.sharedMaterial == null) {
-            var material = Resources.Load("PreviewMaterial") as Material;
+            var material = new Material(Resources.Load("PreviewMaterial") as Material);
             meshFilter.GetComponent<Renderer>().sharedMaterial = material;
         }
 

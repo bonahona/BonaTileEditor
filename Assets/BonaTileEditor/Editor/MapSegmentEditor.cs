@@ -6,6 +6,7 @@ using System.Collections.Generic;
 [CustomEditor(typeof(MapSegment))]
 public class MapSegmentEditor : Editor
 {
+    #region Constants
     public const string SEGMENT_WIDTH_TOOLTIP = "Width of this map segment countet in tiles";
     public const string SEGMENT_HEIGHT_TOOLTIP = "Height of this map segment countet in tiles";
 
@@ -17,6 +18,7 @@ public class MapSegmentEditor : Editor
 
     public const int MAX_WIDTH = 100;
     public const int MAX_HEIGHT = 100;
+    #endregion
 
     public MapSegment MapSegment { get; set; }
 
@@ -56,10 +58,12 @@ public class MapSegmentEditor : Editor
 
     #endregion
 
+    #region Resources
     // Loaded resources
     public Texture2D[] ToolBarBrushTextures;
     public Texture2D SelectedTileTexture;
     public Texture2D HoverTileTexture;
+    #endregion
 
     private GUIStyle m_internalTileStyle;
     void OnEnabled()
@@ -342,7 +346,7 @@ public class MapSegmentEditor : Editor
                         GUI.DrawTextureWithTexCoords(rect, layer.Texture, layer.Tiles[num].Rect);
 
                         Texture2D currentTexture = null;
-                        if (RectContains(rect, mousePosition)) {
+                        if (RectContains(rect, mousePosition) && !MapSegment.CurrentTileSelection.IsCustom) {
                             currentTexture = HoverTileTexture;
                             SetTileSelection(x, y, num);
                         } else if (MapSegment.CurrentTileSelection.Contains(num)) {
@@ -391,6 +395,8 @@ public class MapSegmentEditor : Editor
         }else {
             SelectionBlockStart = null;
         }
+
+        MapSegment.CurrentTileSelection.IsCustom = false;
     }
 
     public void CreateNewLayer(TileSetLayer tileSetLayer, int layerIndex)
@@ -612,6 +618,7 @@ public class MapSegmentEditor : Editor
 
         if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Space) {
             mapSegment.CurrentTileSelection.Clear();
+            TileSetPreview.Clear();
         }
 
         try {
@@ -736,8 +743,10 @@ public class MapSegmentEditor : Editor
             var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
             var currentPoint = new Point(tilePosition.X, tilePosition.Y);
             if (MouseLeftClicked) {
-                // Paint the tile
-                mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection);
+
+                var uvs = MapSegment.StartPaint();
+                mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection, uvs);
+                MapSegment.FinalizePaint(uvs);
 
                 // Set dirty so the editor serializes it
                 EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -772,11 +781,13 @@ public class MapSegmentEditor : Editor
                 if (BlockStart != null) {
                     IntVector2 endBlock = new IntVector2(tilePosition);
 
+                    var uvs = MapSegment.StartPaint();
                     for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
                         for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
-                            mapSegment.Paint(new Point(x, y), MapSegment.CurrentTileSelection);
+                            mapSegment.Paint(new Point(x, y), MapSegment.CurrentTileSelection, uvs);
                         }
                     }
+                    MapSegment.FinalizePaint(uvs);
 
                     // Set dirty so the editor serializes it
                     EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -810,9 +821,11 @@ public class MapSegmentEditor : Editor
         TileSetPreview.SetPreviewZoneBucket(MapSegment.CurrentTileSelection, adjecentTiles);
 
         if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
+            var uvs = MapSegment.StartPaint();
             foreach (var adjecentTile in adjecentTiles) {
-                mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection);
+                mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection, uvs);
             }
+            MapSegment.FinalizePaint(uvs);
 
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);

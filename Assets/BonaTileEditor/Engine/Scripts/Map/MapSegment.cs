@@ -93,13 +93,23 @@ public class MapSegment : MonoBehaviour {
         return true;
     }
 
-    public void Paint(Point point, MapSegmentPaletteSelection selection)
+    public Vector2[] StartPaint()
+    {
+        return CurrentLayer.StartPaint();
+    }
+
+    public void FinalizePaint(Vector2[] uvs)
+    {
+        CurrentLayer.FinalizePaint(uvs);
+    }
+
+    public void Paint(Point point, MapSegmentPaletteSelection selection, Vector2[] uvs)
     {
         if (CurrentLayer == null) {
             return;
         }
 
-        CurrentLayer.Paint(point, selection);
+        CurrentLayer.Paint(point, selection, uvs);
     }
 
     public List<Point> FindAllAdjecentTilesOfType(Point startPoint, int tileType)

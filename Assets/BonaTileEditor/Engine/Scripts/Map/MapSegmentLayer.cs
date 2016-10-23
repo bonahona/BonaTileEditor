@@ -24,11 +24,21 @@ public class MapSegmentLayer : MonoBehaviour {
         return MeshFilter;
     }
 
-    public void Paint(Point point, MapSegmentPaletteSelection selection)
+    public Vector2[] StartPaint()
     {
         var meshFilter = GetMeshFilter();
         var meshUvs = meshFilter.sharedMesh.uv;
+        return meshUvs;
+    }
 
+    public void FinalizePaint(Vector2[] uvs)
+    {
+        var meshFilter = GetMeshFilter();
+        meshFilter.sharedMesh.uv = uvs;
+    }
+
+    public void Paint(Point point, MapSegmentPaletteSelection selection, Vector2[] uvs)
+    {
         for (int y = 0; y < selection.Height; y++) {
             for (int x = 0; x < selection.Width; x++) {
                 if (MapSegment.ValidateBounds(x, y, point)) {
@@ -41,12 +51,10 @@ public class MapSegmentLayer : MonoBehaviour {
                     var tileType = selection.GetTileType(x, tileY);
                     var tile = TileSetLayer.Tiles[tileType];
 
-                    SetTileTypeToTile(currentX, currentY, tile, tileType, MapSegment, meshUvs);
+                    SetTileTypeToTile(currentX, currentY, tile, tileType, MapSegment, uvs);
                 }
             }
         }
-
-        meshFilter.sharedMesh.uv = meshUvs;
     }
 
     public void SetTileTypeToTile(int x, int y, Tile tile, int tileType, MapSegment mapSegment, Vector2[] meshUvs)
