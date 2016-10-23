@@ -57,6 +57,14 @@ public class MapSegmentLayer : MonoBehaviour {
         }
     }
 
+    public void Paint(Point point, int tileType, Vector2[] uvs)
+    {
+        if (MapSegment.ValidateBounds(point)) {
+            var tile = TileSetLayer.Tiles[tileType];
+            SetTileTypeToTile(point.X, point.Y, tile, tileType, MapSegment, uvs);
+        }
+    }
+
     public void SetTileTypeToTile(int x, int y, Tile tile, int tileType, MapSegment mapSegment, Vector2[] meshUvs)
     {
         int uvOffset = ((y * mapSegment.Width) + x) * 4;

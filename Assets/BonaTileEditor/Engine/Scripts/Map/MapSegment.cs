@@ -95,12 +95,22 @@ public class MapSegment : MonoBehaviour {
 
     public Vector2[] StartPaint()
     {
-        return CurrentLayer.StartPaint();
+        return StartPaint(CurrentLayer);
+    }
+
+    public Vector2[] StartPaint(MapSegmentLayer layer)
+    {
+        return layer.StartPaint();
     }
 
     public void FinalizePaint(Vector2[] uvs)
     {
-        CurrentLayer.FinalizePaint(uvs);
+        FinalizePaint(uvs, CurrentLayer);
+    }
+
+    public void FinalizePaint(Vector2[] uvs, MapSegmentLayer layer)
+    {
+        layer.FinalizePaint(uvs);
     }
 
     public void Paint(Point point, MapSegmentPaletteSelection selection, Vector2[] uvs)

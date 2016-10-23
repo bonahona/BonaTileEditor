@@ -18,6 +18,8 @@ public class MapSegmentEditor : Editor
 
     public const int MAX_WIDTH = 100;
     public const int MAX_HEIGHT = 100;
+
+    public const string UNDO_REDO_COMMAND_NAME = "UndoRedoPerformed";
     #endregion
 
     public MapSegment MapSegment { get; set; }
@@ -187,6 +189,12 @@ public class MapSegmentEditor : Editor
 
         SetDefaults();
         UpdateMouseClick();
+
+        if(Event.current.type == EventType.ValidateCommand) {
+            if(Event.current.commandName == UNDO_REDO_COMMAND_NAME) {
+                OnUndoRedo();
+            }
+        }
 
         if(Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Space) {
             MapSegment.CurrentTileSelection.Clear();
@@ -746,7 +754,7 @@ public class MapSegmentEditor : Editor
 
                 var uvs = MapSegment.StartPaint();
                 mapSegment.Paint(new Point(tilePosition.X, tilePosition.Y), mapSegment.CurrentTileSelection, uvs);
-                MapSegment.FinalizePaint(uvs);
+                FinalizePaint(uvs);
 
                 // Set dirty so the editor serializes it
                 EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -787,7 +795,8 @@ public class MapSegmentEditor : Editor
                             mapSegment.Paint(new Point(x, y), MapSegment.CurrentTileSelection, uvs);
                         }
                     }
-                    MapSegment.FinalizePaint(uvs);
+
+                    FinalizePaint(uvs);
 
                     // Set dirty so the editor serializes it
                     EditorUtility.SetDirty(mapSegment.CurrentLayer);
@@ -825,13 +834,25 @@ public class MapSegmentEditor : Editor
             foreach (var adjecentTile in adjecentTiles) {
                 mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection, uvs);
             }
-            MapSegment.FinalizePaint(uvs);
+
+            FinalizePaint(uvs);
 
             // Set dirty so the editor serializes it
             EditorUtility.SetDirty(mapSegment.CurrentLayer);
         }
-    }    
-   
+    }
+
+    public void FinalizePaint(Vector2[] uvs)
+    {
+        Undo.RecordObjects(new Object[] { MapSegment.CurrentLayer, MapSegment.CurrentLayer.GetComponent<MeshFilter>().sharedMesh }, "Painted tile");
+        MapSegment.FinalizePaint(uvs);
+    }
+
+    public void FinalizeNoUndoRedo(Vector2[] uvs, MapSegmentLayer layer)
+    {
+        MapSegment.FinalizePaint(uvs, layer);
+    }
+
     protected bool BrushAllowsSelection(MapSegmentBrushType type)
     {
         if(type ==  MapSegmentBrushType.Block || type == MapSegmentBrushType.Fill || type == MapSegmentBrushType.Single) {
@@ -896,5 +917,16 @@ public class MapSegmentEditor : Editor
     public Vector2 GetScaledVector(Vector2 vector, Vector2 scale)
     {
         return new Vector2(vector.x * scale.x, vector.y * scale.y);
+    }
+
+    public void OnUndoRedo()
+    {
+        foreach(var layer in MapSegment.GetOrderedLayerList()) {
+            var uvs = MapSegment.StartPaint(layer);
+            var tileType = layer.TilesCollection.GetTileType(Point.Zero);
+            layer.Paint(Point.Zero, tileType, uvs);
+            FinalizeNoUndoRedo(uvs, layer);
+            TileSetPreview.Clear();
+        }
     }
 }
