@@ -65,6 +65,11 @@ public class MapSegmentPathing
         var unWalkableTileGroups = GetGroups(false);
         var walkableTilegroups = GetGroups(true);
 
+        // If nothing is unwalkable no colliders are needed
+        if(unWalkableTileGroups.Count == 0) {
+            return result;
+        }
+
         var expectedCollidergroupCount = unWalkableTileGroups.Count + walkableTilegroups.Count;
 
         foreach (var group in unWalkableTileGroups) {

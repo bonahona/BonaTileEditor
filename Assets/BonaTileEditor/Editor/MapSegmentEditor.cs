@@ -886,7 +886,7 @@ public class MapSegmentEditor : Editor
 
             foreach(var edgeGroup in edgesGroups) {
                 var edgeGameObject = new GameObject("Collider2D");
-                edgeGameObject.hideFlags = HideFlags.HideInHierarchy;
+                //edgeGameObject.hideFlags = HideFlags.HideInHierarchy;
 
                 var edgeCollider = edgeGameObject.AddComponent<EdgeCollider2D>();
                 edgeCollider.points = edgeGroup.ToArray();
@@ -898,7 +898,9 @@ public class MapSegmentEditor : Editor
             }
 
             Debug.Log(string.Format("MapSegment {0}'s colliders has been updated", MapSegment.name));
-        }catch(System.Exception) {
+        }catch(System.Exception e) {
+            Debug.Log(e);
+
             Debug.LogError("Could not generate a collider. Mapsegment might not be up-to-date with some changes to the tileset. Apply the tileset again.");
         }
     }
