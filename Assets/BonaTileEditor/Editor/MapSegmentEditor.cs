@@ -886,7 +886,7 @@ public class MapSegmentEditor : Editor
 
             foreach(var edgeGroup in edgesGroups) {
                 var edgeGameObject = new GameObject("Collider2D");
-                //edgeGameObject.hideFlags = HideFlags.HideInHierarchy;
+                edgeGameObject.hideFlags = HideFlags.HideInHierarchy;
 
                 var edgeCollider = edgeGameObject.AddComponent<EdgeCollider2D>();
                 edgeCollider.points = edgeGroup.ToArray();
