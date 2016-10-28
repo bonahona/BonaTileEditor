@@ -931,4 +931,12 @@ public class MapSegmentEditor : Editor
             TileSetPreview.Clear();
         }
     }
+
+    public override Texture2D RenderStaticPreview(string assetPath, Object[] subAssets, int width, int height)
+    {
+        var result = new Texture2D(width, height);
+        var textureResource = Resources.Load<Texture2D>("TileSetIcon");
+        EditorUtility.CopySerialized(AssetPreview.GetAssetPreview(textureResource), result);
+        return result;
+    }
 }
