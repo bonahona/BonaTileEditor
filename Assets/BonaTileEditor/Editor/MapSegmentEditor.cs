@@ -394,6 +394,7 @@ public class MapSegmentEditor : Editor
             return;
         }
 
+
         if (MouseLeftClicked && SelectionBlockStart == null) {
             MapSegment.CurrentTileSelection.SetSingleSelection(tileType);
             SelectionBlockStart = new IntVector2(x, y);
@@ -405,6 +406,7 @@ public class MapSegmentEditor : Editor
         }
 
         MapSegment.CurrentTileSelection.IsCustom = false;
+        TileSetPreview.Clear();
     }
 
     public void CreateNewLayer(TileSetLayer tileSetLayer, int layerIndex)
@@ -607,16 +609,9 @@ public class MapSegmentEditor : Editor
         boxCollider.isTrigger = true;
     }
 
+
     void OnSceneGUI()
     {
-        // Make sure to call a repaint of the MapSegments when Undo or Redo is called
-        var currentEvent = Event.current;
-        if(currentEvent.type == EventType.ValidateCommand) {
-            if (currentEvent.commandName == "UndoRedoPerform") {
-                // TODO: Add logics for Undo/Redo
-            }
-        }
-
         MapSegment mapSegment = (MapSegment)target;
         var controlId = GUIUtility.GetControlID(FocusType.Passive);
         HandleUtility.AddDefaultControl(controlId);
@@ -630,14 +625,14 @@ public class MapSegmentEditor : Editor
         }
 
         try {
-            if (mapSegment.CurrentBrush == MapSegmentBrushType.Single) {
+            if(MapSegment.CurrentBrush == MapSegmentBrushType.None) {
+                HandleNoBrush();
+            } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Single) {
                 HandleSingleBrush(mapSegment);
             } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Block) {
                 HandleBlockBrush(mapSegment);
             } else if (mapSegment.CurrentBrush == MapSegmentBrushType.Fill) {
                 HandleFillBrush(mapSegment);
-            } else {
-                TileSetPreview.Clear();
             }
         } catch (System.Exception) {
             // Sometmes, for a single frame the preview object is not set. This is the easiet way to manage it
@@ -711,6 +706,7 @@ public class MapSegmentEditor : Editor
 
     protected void ChangeBrush(MapSegmentBrushType brushType)
     {
+        TileSetPreview.Clear();
         if(!BrushAllowsSelection(brushType)) {
             MapSegment.CurrentTileSelection.Clear();
         }
@@ -724,6 +720,7 @@ public class MapSegmentEditor : Editor
 
     protected void ChangeLayer(int layerIndex, MapSegmentLayer[] layers)
     {
+        TileSetPreview.Clear();
         // To avoid immediately selecting the first thing the mouse hovers over on the new layer
         MouseLeftClicked = false;
         MouseRightClicked = false;
@@ -733,6 +730,11 @@ public class MapSegmentEditor : Editor
 
         MapSegment.CurrentLayer = layers[layerIndex];
         CurrentLayerIndex = layerIndex;
+    }
+
+    protected void HandleNoBrush()
+    {
+        TileSetPreview.Clear();
     }
 
     protected void HandleSingleBrush(MapSegment mapSegment)
@@ -762,6 +764,8 @@ public class MapSegmentEditor : Editor
                 // Show a preview of the tile that would be painted
                 TileSetPreview.SetPreviewZoneSingle(mapSegment.CurrentTileSelection, currentPoint);            
             }
+        }else {
+            TileSetPreview.Clear();
         }
     }
 
@@ -770,38 +774,43 @@ public class MapSegmentEditor : Editor
         if (!AltPress) {
             // Find the tile to paint
             RaycastHit raycastHit;
-            Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
+            var isMouseOver = Physics.Raycast(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition), out raycastHit);
 
-            // Find the cordinates of the selected tile
-            var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
+            if (isMouseOver) {
+                // Find the cordinates of the selected tile
+                var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
 
-            // Use this to create the preview
-            if (BlockStart != null) {
-                IntVector2 endBlock = new IntVector2(tilePosition);
-
-                TileSetPreview.SetPreviewZoneBlock(MapSegment.CurrentTileSelection, BlockStart.ToPoint(), endBlock.ToPoint());
-            }
-
-            if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
-                BlockStart = new IntVector2(tilePosition);
-            } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
-
+                // Use this to create the preview
                 if (BlockStart != null) {
                     IntVector2 endBlock = new IntVector2(tilePosition);
 
-                    var uvs = MapSegment.StartPaint();
-                    for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
-                        for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
-                            mapSegment.Paint(new Point(x, y), MapSegment.CurrentTileSelection, uvs);
-                        }
-                    }
-
-                    FinalizePaint(uvs);
-
-                    // Set dirty so the editor serializes it
-                    EditorUtility.SetDirty(mapSegment.CurrentLayer);
-                    BlockStart = null;
+                    TileSetPreview.SetPreviewZoneBlock(MapSegment.CurrentTileSelection, BlockStart.ToPoint(), endBlock.ToPoint());
                 }
+
+                if (Event.current.type == EventType.MouseDown && Event.current.button == 0) {
+                    BlockStart = new IntVector2(tilePosition);
+                } else if (Event.current.type == EventType.MouseUp && Event.current.button == 0) {
+
+                    if (BlockStart != null) {
+                        IntVector2 endBlock = new IntVector2(tilePosition);
+
+                        var uvs = MapSegment.StartPaint();
+                        for (int y = Mathf.Min(BlockStart.Y, endBlock.Y); y <= Mathf.Max(BlockStart.Y, endBlock.Y); y++) {
+                            for (int x = Mathf.Min(BlockStart.X, endBlock.X); x <= Mathf.Max(BlockStart.X, endBlock.X); x++) {
+                                mapSegment.Paint(new Point(x, y), MapSegment.CurrentTileSelection, uvs);
+                            }
+                        }
+
+                        FinalizePaint(uvs);
+
+                        // Set dirty so the editor serializes it
+                        EditorUtility.SetDirty(mapSegment.CurrentLayer);
+                        BlockStart = null;
+                    }
+                }
+            } else {
+                BlockStart = null;
+                TileSetPreview.Clear();
             }
         }
     }
@@ -819,26 +828,25 @@ public class MapSegmentEditor : Editor
         }
 
         var tilePosition = mapSegment.GetTilePosition(raycastHit.point);
-        if (!MapSegment.ValidateBounds(tilePosition.ToPoint())) {
-            TileSetPreview.Clear();
-            return;
-        }
-
         var tileType = mapSegment.CurrentLayer.TilesCollection.GetTileType(tilePosition);
         var adjecentTiles = mapSegment.FindAllAdjecentTilesOfType(tilePosition.ToPoint(), tileType);
 
-        TileSetPreview.SetPreviewZoneBucket(MapSegment.CurrentTileSelection, adjecentTiles);
+        if (isMouseOver) {
+            TileSetPreview.SetPreviewZoneBucket(MapSegment.CurrentTileSelection, adjecentTiles);
 
-        if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0 && isMouseOver) {
-            var uvs = MapSegment.StartPaint();
-            foreach (var adjecentTile in adjecentTiles) {
-                mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection, uvs);
+            if (MouseLeftClicked && !AltPress && mapSegment.CurrentBrush >= 0) {
+                var uvs = MapSegment.StartPaint();
+                foreach (var adjecentTile in adjecentTiles) {
+                    mapSegment.Paint(adjecentTile, mapSegment.CurrentTileSelection, uvs);
+                }
+
+                FinalizePaint(uvs);
+
+                // Set dirty so the editor serializes it
+                EditorUtility.SetDirty(mapSegment.CurrentLayer);
             }
-
-            FinalizePaint(uvs);
-
-            // Set dirty so the editor serializes it
-            EditorUtility.SetDirty(mapSegment.CurrentLayer);
+        } else {
+            TileSetPreview.Clear();
         }
     }
 

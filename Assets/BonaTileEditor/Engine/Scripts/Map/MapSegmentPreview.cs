@@ -9,7 +9,7 @@ public class MapSegmentPreview : MonoBehaviour
     public MapSegment MapSegment;
     public MeshFilter MeshFilter;
 
-    public MapSegmentPaletteSelection CurrentSelection;
+    public bool IsClean { get; set; }
 
     void Start ()
     {
@@ -25,6 +25,10 @@ public class MapSegmentPreview : MonoBehaviour
 
     public void Clear()
     {
+        if (IsClean) {
+            return;
+        }
+
         // Purposefully create empty arrays to populate the mesh with
         List<Vector3> vertices = new List<Vector3>();
         List<Vector2> uvs = new List<Vector2>();
@@ -32,6 +36,7 @@ public class MapSegmentPreview : MonoBehaviour
         List<Vector3> normals = new List<Vector3>();
 
         UpdateMesh(vertices, uvs, tris, normals);
+        IsClean = true;
     }
 
     public void SetPreviewZoneSingle(MapSegmentPaletteSelection selection, Point startPoint)
@@ -131,6 +136,7 @@ public class MapSegmentPreview : MonoBehaviour
 
         meshFilter.mesh = null;
         meshFilter.mesh = mesh;
+        IsClean = false;
     }
 
     protected void AddVertices(Vector3 offset, int x, int y, List<Vector3> vertices, Vector2 tileSize)
