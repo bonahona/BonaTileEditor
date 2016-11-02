@@ -239,7 +239,7 @@ public class MapSegmentEditor : Editor
     {
         var result = new Texture2D[4];
 
-        result[0] = Resources.Load("eyedropper") as Texture2D;
+        result[0] = Resources.Load("computer-mouse") as Texture2D;
         result[1] = Resources.Load("pencil") as Texture2D;
         result[2] = Resources.Load("paint-roller") as Texture2D; 
         result[3] = Resources.Load("paint-can") as Texture2D;
