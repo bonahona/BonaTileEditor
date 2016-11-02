@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
+# Visual Studio 2015
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BonaTileEditor.CSharp", "BonaTileEditor.CSharp.csproj", "{86A5AE6B-EDCB-08A1-D75F-C0AA99681844}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BonaTileEditor.CSharp.Editor", "BonaTileEditor.CSharp.Editor.csproj", "{9EA9D338-D5BC-95B4-90F3-5DCF189A1469}"

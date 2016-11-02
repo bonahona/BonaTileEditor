@@ -1,0 +1,10 @@
+Bona Tile Editor is a Unity Editor extension, making it possible to create and edit NES/SNES-like
+maps easier, built into the unity inspector and sceneview. The extension also enables automatic
+collider generation for the maps painted.
+
+There are problably more complete RPG maker extensions if that is what you are looking for. I was looking for a simple solution for just creating the maps
+which is the problem addressed with this extension.
+
+This extension adds a new resource for setting up tile sets and a new component to used in the scene to create the actual maps, based on a tileset.
+Tile sets are a collection of layers, each layers consisting on tiles. A seperate texture/image can be used for each of these layers, allowing more detailed, layered, map segments.
+Tiles have properties regarding if a character can walk on them. This information can then be used for automatic collider generation.
