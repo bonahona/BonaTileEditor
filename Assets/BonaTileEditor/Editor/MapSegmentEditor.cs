@@ -12,9 +12,9 @@ public class MapSegmentEditor : Editor
 
     public const float BASE_LAYER_DEPTH = 0;
     public const float OVERLAY_BASE_DEPTH = 0;
-    public const float OVERLAY_INCREMENT_DEPTH = 0.01f;
+    public const float OVERLAY_INCREMENT_DEPTH = 0.1f;
     public const float ONTOP_OVERLAY_BASE_DEPTH = 1;
-    public const float ONTOP_OVERLAY_INCREMENT_DEPTH = 0.01f;
+    public const float ONTOP_OVERLAY_INCREMENT_DEPTH = 0.1f;
 
     public const int MAX_WIDTH = 100;
     public const int MAX_HEIGHT = 100;
@@ -128,7 +128,6 @@ public class MapSegmentEditor : Editor
         foreach(var layer in MapSegment.GetComponentsInChildren<MapSegmentLayer>()) {
             if (!TileSet.HasLayer(layer.TileSetLayer)) {
                 GameObject.DestroyImmediate(layer.gameObject);
-                Debug.Log("Destroy layer");
             }
         }
 
@@ -524,16 +523,20 @@ public class MapSegmentEditor : Editor
         meshFilter.mesh = mesh;
 
         // Update the game object
-        gameObject.hideFlags = HideFlags.HideInHierarchy;
+        //gameObject.hideFlags = HideFlags.HideInHierarchy;
+        gameObject.hideFlags = HideFlags.None;
 
         var layerType = layer.TileSetLayer.LayerType;
         if(layerType == TileSetLayerType.BaseLayer) {
-            gameObject.transform.position = GetBaseLayerPosition(gameObject.transform.position);
+            gameObject.transform.localPosition = GetBaseLayerPosition(gameObject.transform.position);
         }else if(layerType == TileSetLayerType.Overlay) {
-            gameObject.transform.position = GetOverlayPosition(gameObject.transform.position, layerIndex);
+            gameObject.transform.localPosition = GetOverlayPosition(gameObject.transform.position, layerIndex);
         }else if(layerType == TileSetLayerType.OnTopOverlay) {
-            gameObject.transform.position = GetOnTopOverlayPosition(gameObject.transform.position, layerIndex);
+            gameObject.transform.localPosition = GetOnTopOverlayPosition(gameObject.transform.position, layerIndex);
         }
+
+        Debug.Log(gameObject.name);
+        Debug.Log(gameObject.transform.localPosition);
 
         EditorUtility.SetDirty(layer);       
     }
@@ -549,6 +552,7 @@ public class MapSegmentEditor : Editor
     {
         var result = currentPostition;
         result.z = OVERLAY_BASE_DEPTH + (layerIndex * OVERLAY_INCREMENT_DEPTH);
+
         return result;
     }
 
