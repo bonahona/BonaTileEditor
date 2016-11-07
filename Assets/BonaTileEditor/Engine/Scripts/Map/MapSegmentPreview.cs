@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
+[ExecuteInEditMode]
 public class MapSegmentPreview : MonoBehaviour
 {
     public MapSegment MapSegment;
@@ -15,7 +16,9 @@ public class MapSegmentPreview : MonoBehaviour
     {
         // This object should only be alive in the editor. If it does not it will ve created automatically by the editor script so
         // removing it is never a problem.
-        GameObject.Destroy(gameObject);
+        if (!Application.isEditor) {
+            GameObject.Destroy(gameObject);
+        }
     }
 
     public void Init()
@@ -119,7 +122,14 @@ public class MapSegmentPreview : MonoBehaviour
     {
         var meshFilter = gameObject.GetComponent<MeshFilter>();
         var meshRenderer = gameObject.GetComponent<MeshRenderer>();
-        var mesh = new Mesh();
+
+        Mesh mesh = null;
+        if (meshFilter.sharedMesh == null) {
+            mesh = new Mesh();
+        }else {
+            mesh = meshFilter.sharedMesh;
+            mesh.Clear();
+        }
 
         mesh.vertices = vertices.ToArray();
         mesh.uv = uvs.ToArray();
@@ -134,8 +144,7 @@ public class MapSegmentPreview : MonoBehaviour
 
         meshRenderer.sharedMaterial.mainTexture = MapSegment.CurrentLayer.TileSetLayer.Texture;
 
-        meshFilter.mesh = null;
-        meshFilter.mesh = mesh;
+        meshFilter.sharedMesh = mesh;
         IsClean = false;
     }
 

@@ -136,7 +136,6 @@ public class MapSegmentEditor : Editor
             var layer = TileSet.Layers[i];
 
             if (MapSegment.HasLayerOfType(layer)) {
-
                 AlterLayer(layer, i);
             } else {
                 CreateNewLayer(layer, i);
@@ -144,18 +143,17 @@ public class MapSegmentEditor : Editor
         }
 
         // Now sort the layers according to type
-        int index = 1;
+        var index = 0;
         foreach (var tileSetLayer in MapSegment.GetComponentsInChildren<MapSegmentLayer>()) {
-            Vector3 tmpPosition = tileSetLayer.gameObject.transform.position;
-            if (tileSetLayer.TileSetLayer.LayerType == TileSetLayerType.BaseLayer) {
-                tmpPosition.z = 0;
-            } else if (tileSetLayer.TileSetLayer.LayerType == TileSetLayerType.Overlay) {
-                tmpPosition.z = -index;
-            } else if (tileSetLayer.TileSetLayer.LayerType == TileSetLayerType.OnTopOverlay) {
-                tmpPosition.z = -100 + index;
+            var layerType = tileSetLayer.TileSetLayer.LayerType;
+            if (layerType == TileSetLayerType.BaseLayer) {
+                tileSetLayer.transform.localPosition = GetBaseLayerPosition(tileSetLayer.transform.position);
+            } else if (layerType == TileSetLayerType.Overlay) {
+                tileSetLayer.transform.localPosition = GetOverlayPosition(tileSetLayer.transform.position, index);
+            } else if (layerType == TileSetLayerType.OnTopOverlay) {
+                tileSetLayer.transform.localPosition = GetOnTopOverlayPosition(tileSetLayer.transform.position, index);
             }
-
-            tileSetLayer.gameObject.transform.position = tmpPosition;
+            index++;
         }
     }
 
@@ -393,7 +391,6 @@ public class MapSegmentEditor : Editor
             return;
         }
 
-
         if (MouseLeftClicked && SelectionBlockStart == null) {
             MapSegment.CurrentTileSelection.SetSingleSelection(tileType);
             SelectionBlockStart = new IntVector2(x, y);
@@ -416,7 +413,6 @@ public class MapSegmentEditor : Editor
         layer.TileSetLayer = tileSetLayer;
 
         segmentGameObject.gameObject.transform.parent = MapSegment.transform;
-        segmentGameObject.transform.localPosition = new Vector3();
 
         ApplyChanges(layer, segmentGameObject, layerIndex);
         EditorUtility.SetDirty(segmentGameObject);
@@ -481,7 +477,13 @@ public class MapSegmentEditor : Editor
         List<Vector3> normals = new List<Vector3>();
       
         var meshFilter = gameObject.GetComponent<MeshFilter>();
-        var mesh = new Mesh();
+        Mesh mesh = null;
+        if (meshFilter.sharedMesh == null) {
+            mesh = new Mesh();
+        } else {
+            mesh = meshFilter.sharedMesh;
+            mesh.Clear();
+        }
 
         var index = 0;
         for (int y = 0; y < MapSegment.Height; y++) {
@@ -518,25 +520,12 @@ public class MapSegmentEditor : Editor
         UpdateBoxColliderSize(boxCollider, totalWidth, totalHeight);
 
         Undo.RegisterCompleteObjectUndo(meshFilter, "Updated map segment mesh");
-        meshFilter.mesh = null;
+        meshFilter.sharedMesh = null;
         Undo.RegisterCompleteObjectUndo(meshFilter, "Updated map segment mesh");
-        meshFilter.mesh = mesh;
+        meshFilter.sharedMesh = mesh;
 
         // Update the game object
-        //gameObject.hideFlags = HideFlags.HideInHierarchy;
-        gameObject.hideFlags = HideFlags.None;
-
-        var layerType = layer.TileSetLayer.LayerType;
-        if(layerType == TileSetLayerType.BaseLayer) {
-            gameObject.transform.localPosition = GetBaseLayerPosition(gameObject.transform.position);
-        }else if(layerType == TileSetLayerType.Overlay) {
-            gameObject.transform.localPosition = GetOverlayPosition(gameObject.transform.position, layerIndex);
-        }else if(layerType == TileSetLayerType.OnTopOverlay) {
-            gameObject.transform.localPosition = GetOnTopOverlayPosition(gameObject.transform.position, layerIndex);
-        }
-
-        Debug.Log(gameObject.name);
-        Debug.Log(gameObject.transform.localPosition);
+        gameObject.hideFlags = HideFlags.HideInHierarchy;
 
         EditorUtility.SetDirty(layer);       
     }
@@ -544,14 +533,14 @@ public class MapSegmentEditor : Editor
     public Vector3 GetBaseLayerPosition(Vector3 currentPosition)
     {
         var result = currentPosition;
-        result.z = BASE_LAYER_DEPTH;
+        result.z = -BASE_LAYER_DEPTH;
         return result;
     }
 
     public Vector3 GetOverlayPosition(Vector3 currentPostition, int layerIndex)
     {
         var result = currentPostition;
-        result.z = OVERLAY_BASE_DEPTH + (layerIndex * OVERLAY_INCREMENT_DEPTH);
+        result.z = -(OVERLAY_BASE_DEPTH + (layerIndex * OVERLAY_INCREMENT_DEPTH));
 
         return result;
     }
@@ -559,7 +548,7 @@ public class MapSegmentEditor : Editor
     public Vector3 GetOnTopOverlayPosition(Vector3 currentPostition, int layerIndex)
     {
         var result = currentPostition;
-        result.z = ONTOP_OVERLAY_BASE_DEPTH + (layerIndex * ONTOP_OVERLAY_INCREMENT_DEPTH);
+        result.z = -(ONTOP_OVERLAY_BASE_DEPTH + (layerIndex * ONTOP_OVERLAY_INCREMENT_DEPTH));
         return result;
     }
 
