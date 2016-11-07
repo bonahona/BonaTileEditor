@@ -28,6 +28,11 @@ public class TileSetEditor : Editor
     {
         TileSet = (TileSet)target;
         LocalLayers = new List<TileSetLayer>();
+
+        if(TileSet == null) {
+            return;
+        }
+
         foreach (var entry in TileSet.Layers) {
             var tmpEntry = new TileSetLayer(entry);
             tmpEntry.Applied = true;

@@ -14,7 +14,7 @@ public class TileSetLayer
     public int TileSetHeight;
     public Texture2D Texture;
 
-    public Vector2 UvOffsetSize;
+    public Vector2 uvOffsetSize;
     public bool Applied = true;
 
     public Tile[] Tiles;
@@ -42,7 +42,7 @@ public class TileSetLayer
         TileSetHeight = other.TileSetHeight;
         LayerType = other.LayerType;
         Texture = other.Texture;
-        UvOffsetSize = other.UvOffsetSize;
+        uvOffsetSize = other.uvOffsetSize;
 
         Tiles = CopyTiles(Tiles, other.Tiles.Length);
         for (int i = 0; i < Tiles.Length; i++) {
@@ -97,20 +97,22 @@ public class TileSetLayer
         int tileCount = TileSetWidth * TileSetHeight;
         var tiles = new Tile[tileCount];
 
-        UvOffsetSize = new Vector2();
-        UvOffsetSize.x = 1.0f / TileSetWidth;
-        UvOffsetSize.y = 1.0f / TileSetHeight;
+        uvOffsetSize = new Vector2();
+        uvOffsetSize.x = 1.0f / TileSetWidth;
+        uvOffsetSize.y = 1.0f / TileSetHeight;
+
+        var uvOffsetNudge = uvOffsetSize * 0;
 
         for (int y = 0; y < TileSetHeight; y++) {
             for (int x = 0; x < TileSetWidth; x++) {
                 int num = (y * TileSetWidth) + x;
                 tiles[num] = new Tile { X = x, Y = y };
                 tiles[num].UvCords = new Vector2[4];
-                tiles[num].UvCords[0] = new Vector2(x * UvOffsetSize.x, y * UvOffsetSize.y);
-                tiles[num].UvCords[1] = new Vector2((x + 1) * UvOffsetSize.x, y * UvOffsetSize.y);
-                tiles[num].UvCords[2] = new Vector2(x * UvOffsetSize.x, (y + 1) * UvOffsetSize.y);
-                tiles[num].UvCords[3] = new Vector2((x + 1) * UvOffsetSize.x, (y + 1) * UvOffsetSize.y);
-                tiles[num].Rect = new Rect(x * UvOffsetSize.x, y * UvOffsetSize.y, UvOffsetSize.x, UvOffsetSize.y);
+                tiles[num].UvCords[0] = new Vector2(x * uvOffsetSize.x + uvOffsetNudge.x, y * uvOffsetSize.y + uvOffsetNudge.y);
+                tiles[num].UvCords[1] = new Vector2((x + 1) * uvOffsetSize.x - uvOffsetNudge.x, y * uvOffsetSize.y + uvOffsetNudge.y);
+                tiles[num].UvCords[2] = new Vector2(x * uvOffsetSize.x + uvOffsetNudge.x, (y + 1) * uvOffsetSize.y - uvOffsetNudge.y);
+                tiles[num].UvCords[3] = new Vector2((x + 1) * uvOffsetSize.x - uvOffsetNudge.x, (y + 1) * uvOffsetSize.y - uvOffsetNudge.y);
+                tiles[num].Rect = new Rect(x * uvOffsetSize.x, y * uvOffsetSize.y, uvOffsetSize.x, uvOffsetSize.y);
             }
         }
 

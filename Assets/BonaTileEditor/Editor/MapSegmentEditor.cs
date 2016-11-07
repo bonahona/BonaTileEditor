@@ -520,9 +520,9 @@ public class MapSegmentEditor : Editor
         UpdateBoxColliderSize(boxCollider, totalWidth, totalHeight);
 
         Undo.RegisterCompleteObjectUndo(meshFilter, "Updated map segment mesh");
-        meshFilter.sharedMesh = null;
+        meshFilter.mesh = null;
         Undo.RegisterCompleteObjectUndo(meshFilter, "Updated map segment mesh");
-        meshFilter.sharedMesh = mesh;
+        meshFilter.mesh = mesh;
 
         // Update the game object
         gameObject.hideFlags = HideFlags.HideInHierarchy;

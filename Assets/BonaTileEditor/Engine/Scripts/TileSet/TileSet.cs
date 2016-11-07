@@ -13,6 +13,7 @@ public class TileSet : ScriptableObject
     public TileSet()
     {
         Layers = new List<TileSetLayer>();
+        MapSegments = new List<MapSegment>();
     }
 
     public void AddMapSegment(MapSegment mapSegment)
@@ -30,10 +31,6 @@ public class TileSet : ScriptableObject
                 MapSegments.Remove(mapSegment);
             }
         }
-
-        //foreach(var mapSegment in MapSegments) {
-        //    //mapSegment.ApplyTilsetChanges();
-        //}
     }
 
     public bool HasLayer(TileSetLayer segmentLayer)
