@@ -101,7 +101,8 @@ public class TileSetLayer
         uvOffsetSize.x = 1.0f / TileSetWidth;
         uvOffsetSize.y = 1.0f / TileSetHeight;
 
-        var uvOffsetNudge = uvOffsetSize * 0;
+        var uvOffsetNudge = uvOffsetSize * 0.05f;
+        Debug.Log(uvOffsetNudge);
 
         for (int y = 0; y < TileSetHeight; y++) {
             for (int x = 0; x < TileSetWidth; x++) {
