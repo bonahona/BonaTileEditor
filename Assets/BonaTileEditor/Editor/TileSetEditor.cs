@@ -237,9 +237,13 @@ public class TileSetEditor : Editor
 
     public override Texture2D RenderStaticPreview(string assetPath, Object[] subAssets, int width, int height)
     {
-        var result = new Texture2D(width, height);
-        var textureResource = Resources.Load<Texture2D>("TileSetIcon");
-        EditorUtility.CopySerialized(AssetPreview.GetAssetPreview(textureResource), result);
-        return result;
+        try {
+            var result = new Texture2D(width, height);
+            var textureResource = Resources.Load<Texture2D>("TileSetIcon");
+            EditorUtility.CopySerialized(AssetPreview.GetAssetPreview(textureResource), result);
+            return result;
+        } catch(System.Exception){
+            return base.RenderStaticPreview(assetPath, subAssets, width, height);
+        }
     }
 }
