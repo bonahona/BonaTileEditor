@@ -46,7 +46,7 @@ public class MapSegment : MonoBehaviour {
     public MapSegmentPreview CreatePreviewObject()
     {
         var previewObject = new GameObject("Preview");
-        previewObject.transform.parent = transform;
+        previewObject.transform.SetParent(transform);
         previewObject.transform.localPosition = new Vector3(0, 0, -4);
         previewObject.transform.localRotation = Quaternion.identity;
         previewObject.transform.localScale = Vector3.one;

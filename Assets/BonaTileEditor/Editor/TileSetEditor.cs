@@ -151,6 +151,7 @@ public class TileSetEditor : Editor
         var tmpLayerType = (TileSetLayerType)EditorGUILayout.EnumPopup("Type", layer.LayerType);
         var tmpWidth = EditorGUILayout.IntField(new GUIContent("Width", TILESET_WIDTH_TOOLTIP), layer.TileSetWidth);
         var tmpHeight = EditorGUILayout.IntField(new GUIContent("Height", TILESET_HEIGHT_TOOLTIP), layer.TileSetHeight);
+
         var tmpTexture = (Texture2D)EditorGUILayout.ObjectField("Texture", layer.Texture, typeof(Texture2D), false);
 
         // Detect changes
